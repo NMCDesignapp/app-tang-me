@@ -52,3 +52,11 @@ prompt
 server.log
 # Skills directory
 /skills/
+# Internal tools
+.zscripts/
+agent-ctx/
+worklog.md
+# Original Flask app (not needed)
+/app-tang-me/
+# Font files (bundled in public)
+# Keep public/fonts/ - they're needed for PDF generation
