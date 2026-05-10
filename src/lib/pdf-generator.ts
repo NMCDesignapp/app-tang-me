@@ -5,15 +5,14 @@ import { join } from 'path';
 /**
  * PDF Generator using pdf-lib + pre-converted blank template PDF.
  *
- * Coordinates derived from exact label positions in the template PDF
- * (analyzed with PyMuPDF, verified visually).
+ * Coordinates derived from the NEW template (template.docx converted 2026-05-10).
+ * Analyzed with PyMuPDF — labels and fill positions computed from exact span positions.
  *
- * Page 1 labels use size 13 → fill text also size 13.
- * Page 2 labels use size 12 → fill text uses size 12 (or smaller for tight fields).
- * Date fields (ngay_sinh, ngay_sinh_dd) use size 11 for wider spacing.
+ * Page 1 labels at size 13, fill at size 13 (date at size 11).
+ * Page 2 labels at size 12, fill at size 12 (date at size 11).
  * Liberation Serif Regular matches the template's font family.
  *
- * Y conversion: pdf_lib_y = PAGE_HEIGHT - (label_y_top + ASCENT_FACTOR * label_size)
+ * Y formula: pdf_lib_y = PAGE_HEIGHT - y_baseline + ASCENT_FACTOR * (label_size - fill_size)
  * ASCENT_FACTOR = 0.89111328125 (Liberation Serif)
  * PAGE_HEIGHT = 841.89
  */
@@ -38,96 +37,91 @@ interface FieldDef {
 }
 
 // =============================================================================
-// Page 1 (Cover page) - labels at size 13, fill at size 13
-// X = label_x2 + 3pt gap
-// Y = 841.89 - (label_y_top + 11.58)  [ascent at size 13 = 11.58]
+// Page 1 (Cover page) — NEW template coordinates
+// Label "Họ và tên:" x2=98.7, "Ngày/tháng/năm sinh:" x2=162.9,
+// "Giới tính:" x2=354.2, "SĐT:" x2=72.7, "Địa chỉ:" x2=252.5
 // =============================================================================
 const PAGE1_FIELDS: FieldDef[] = [
-  // After "Họ và tên:" x2=98.7
-  { key: 'ho_ten',    x: 101.7, y: 499.3, size: 13, maxW: 450 },
-  // After "Ngày/tháng/năm sinh:" x2=162.9, before "Giới tính:" at x=234.1
-  { key: 'ngay_sinh', x: 165.9, y: 476.2, size: 13, maxW: 65 },
-  // After "Giới tính:" x2=288.0
-  { key: 'gioi_tinh', x: 291.0, y: 476.2, size: 13, maxW: 260 },
-  // After "SĐT:" x2=72.7, before "Địa chỉ:" at x=179.6
-  { key: 'sdt',       x:  75.7, y: 452.8, size: 13, maxW: 100 },
-  // After "Địa chỉ:" x2=224.4
-  { key: 'dia_chi',   x: 227.4, y: 452.8, size: 13, maxW: 320 },
+  // After "Họ và tên:" x2=98.7, y_baseline=342.4
+  { key: 'ho_ten',    x: 101.7, y: 499.5, size: 13, maxW: 450 },
+  // After "Ngày/tháng/năm sinh:" x2=162.9, y_baseline=366.5, before "Giới tính:" at x=300.4
+  { key: 'ngay_sinh', x: 165.9, y: 477.2, size: 11, maxW: 130 },
+  // After "Giới tính:" x2=354.2, y_baseline=366.5
+  { key: 'gioi_tinh', x: 357.2, y: 475.4, size: 13, maxW: 250 },
+  // After "SĐT:" x2=72.7, y_baseline=391.0, before "Địa chỉ:" at x=207.8
+  { key: 'sdt',       x:  75.7, y: 450.9, size: 13, maxW: 130 },
+  // After "Địa chỉ:" x2=252.5, y_baseline=391.0
+  { key: 'dia_chi',   x: 255.5, y: 450.9, size: 13, maxW: 320 },
 ];
 
 // =============================================================================
-// Page 2 (Request form) - labels at size 12
-// Y = 841.89 - (label_y_top + 10.69)  [ascent at size 12 = 10.69]
-// Date fields use size 11 for wider spacing in tight spaces
+// Page 2 (Request form) — NEW template coordinates
+// Key change: "Ngày cấp:" now at x=316.4 (was 235.5), so so_gttt has ~138pt space!
 // =============================================================================
 const PAGE2_FIELDS: FieldDef[] = [
   // ---- Section I: Person info ----
-  // After "Họ và tên:" x2=123.1
-  { key: 'ho_ten_p2',      x: 126.1, y: 710.9, size: 12, maxW: 420 },
-  // After "Ngày/tháng/năm sinh:" x2=182.3, before "Giới tính:" at x=240.9
-  // Size 11 for wider spacing (date "dd/mm/yyyy" = 50pt at size 11, fits in 55pt)
-  { key: 'ngay_sinh_p2',   x: 185.4, y: 693.0, size: 11, maxW: 53 },
-  // After "Giới tính:" x2=293.5
-  { key: 'gioi_tinh_p2',   x: 296.5, y: 693.0, size: 12, maxW: 255 },
-  // After ":" at x≈172.5, before "Ngày cấp:" starts at x≈235.5
-  // Size 9 so 12-digit CCCD fits with ~9pt gap before "Ngày cấp:" (54pt at size 9, space = 63pt)
-  { key: 'so_gttt',        x: 172.5, y: 676.9, size: 9, maxW: 63 },
-  // After "Ngày cấp:" colon x2≈284.5 — size 12 matching label size
-  { key: 'ngay_cap',       x: 287.5, y: 676.0, size: 12, maxW: 265 },
-  // After "Nơi cấp:" x2=114.4 — wider spacing for place name
-  { key: 'noi_cap',        x: 117.4, y: 659.2, size: 12, maxW: 430 },
+  // After "Họ và tên:" x2=123.0, y_baseline=131.0
+  { key: 'ho_ten_p2',      x: 126.0, y: 710.9, size: 12, maxW: 420 },
+  // After "Ngày/tháng/năm sinh:" x2=182.3, y_baseline=148.9, before "Giới tính:" at x=313.3
+  { key: 'ngay_sinh_p2',   x: 185.3, y: 693.9, size: 11, maxW: 125 },
+  // After "Giới tính:" x2=362.9, y_baseline=148.9
+  { key: 'gioi_tinh_p2',   x: 365.9, y: 693.0, size: 12, maxW: 200 },
+  // After ":" x2=175.5, y_baseline=166.9 — "Ngày cấp:" TEXT starts at x=316.4 → ~138pt gap!
+  { key: 'so_gttt',        x: 178.5, y: 675.0, size: 12, maxW: 138 },
+  // After "Ngày cấp:" x2=362.0, y_baseline=166.9
+  { key: 'ngay_cap',       x: 365.0, y: 675.0, size: 12, maxW: 240 },
+  // After "Nơi cấp:" x2=114.4, y_baseline=184.8
+  { key: 'noi_cap',        x: 117.4, y: 657.1, size: 12, maxW: 430 },
 
   // ---- Section II: Representative ----
-  // After "1. Họ và tên:" x2=99.1
-  { key: 'nguoi_dai_dien', x: 102.1, y: 625.6, size: 12, maxW: 445 },
-  // After "2. Ngày/tháng/năm sinh:" x2=152.3, before "Giới tính:" at x=214.1
-  // Size 11 for wider spacing
-  { key: 'ngay_sinh_dd',   x: 155.3, y: 608.8, size: 11, maxW: 55 },
-  // After "Giới tính:" x2=263.8
-  { key: 'gioi_tinh_dd',   x: 266.8, y: 608.8, size: 12, maxW: 285 },
-  // After ":" x2=148.5, before "Ngày cấp:" at x=254.6 — size 12 fits well (space = 106pt)
-  { key: 'so_gttt_dd',     x: 151.5, y: 592.0, size: 12, maxW: 100 },
-  // After "Ngày cấp:" colon x2≈303.5 — size 13 matching other fields
-  { key: 'ngay_cap_dd',    x: 306.5, y: 592.0, size: 13, maxW: 245 },
-  // After "Nơi cấp:" x2=78.4 — wider spacing for place name
-  { key: 'noi_cap_dd',     x:  81.4, y: 575.2, size: 12, maxW: 470 },
-  // After "4. Quan hệ với Người được kiểm tra sức khỏe:" x2=266.7
-  { key: 'quan_he',        x: 269.7, y: 555.4, size: 12, maxW: 280 },
+  // After "1. Họ và tên:" x2=99.0, y_baseline=219.6
+  { key: 'nguoi_dai_dien', x: 102.0, y: 622.3, size: 12, maxW: 445 },
+  // After "2. Ngày/tháng/năm sinh:" x2=152.3, y_baseline=237.5, before "Giới tính:" at x=331.5
+  { key: 'ngay_sinh_dd',   x: 155.3, y: 605.3, size: 11, maxW: 175 },
+  // After "Giới tính:" x2=381.1, y_baseline=237.5
+  { key: 'gioi_tinh_dd',   x: 384.1, y: 604.4, size: 12, maxW: 170 },
+  // After ":" x2=148.5, y_baseline=255.5 — "Ngày cấp:" at x=339.2 → ~188pt gap!
+  { key: 'so_gttt_dd',     x: 151.5, y: 586.4, size: 12, maxW: 188 },
+  // After "Ngày cấp:" x2=384.8, y_baseline=255.5
+  { key: 'ngay_cap_dd',    x: 387.8, y: 586.4, size: 12, maxW: 215 },
+  // After "Nơi cấp:" x2=78.4, y_baseline=273.4
+  { key: 'noi_cap_dd',     x:  81.4, y: 568.5, size: 12, maxW: 470 },
+  // After "4. Quan hệ..." x2=266.7, y_baseline=294.4
+  { key: 'quan_he',        x: 269.7, y: 547.5, size: 12, maxW: 280 },
 
   // ---- Section III: Exam content ----
-  // After "Mức khám:" x2=124.7
-  { key: 'muc_kham',       x: 127.7, y: 478.4, size: 12, maxW: 420 },
-  // After "Nội dung cần kiểm tra bổ sung:" x2=188.3
-  { key: 'ghi_chu',        x: 191.3, y: 211.1, size: 12, maxW: 360 },
+  // After "Mức khám:" x2=124.7, y_baseline=372.5
+  { key: 'muc_kham',       x: 127.7, y: 469.4, size: 12, maxW: 420 },
+  // After "Nội dung cần kiểm tra bổ sung:" x2=191.3, y_baseline=676.8
+  { key: 'ghi_chu',        x: 194.3, y: 165.1, size: 12, maxW: 360 },
 
   // ---- Dotted lines for handwriting ----
-  // After ":" on same line as "Nội dung cần kiểm tra bổ sung:" (y_top≈620.1)
-  // Moved down ~4pt from 211.1 → 207.1 per user request
-  { key: 'dots_bosung',    x: 191.3, y: 207.1, size: 12, maxW: 380 },
+  // After "Nội dung cần kiểm tra bổ sung:" — moved down per user request
+  { key: 'dots_bosung',    x: 194.3, y: 161.1, size: 12, maxW: 380 },
 
-  // ---- Exam X marks - Left column (centered at x≈292) ----
-  { key: 'kham_1',   x: 288, y: 433.0, size: 12, maxW: 20 },
-  { key: 'kham_2',   x: 288, y: 418.7, size: 12, maxW: 20 },
-  { key: 'kham_3',   x: 288, y: 404.4, size: 12, maxW: 20 },
-  { key: 'kham_4',   x: 288, y: 390.1, size: 12, maxW: 20 },
-  { key: 'kham_4_1', x: 288, y: 375.8, size: 12, maxW: 20 },
-  { key: 'kham_4_2', x: 288, y: 361.5, size: 12, maxW: 20 },
-  { key: 'kham_4_3', x: 288, y: 347.2, size: 12, maxW: 20 },
-  { key: 'kham_4_4', x: 288, y: 332.9, size: 12, maxW: 20 },
-  { key: 'kham_5',   x: 288, y: 318.6, size: 12, maxW: 20 },
-  { key: 'kham_6',   x: 288, y: 304.3, size: 12, maxW: 20 },
+  // ---- Exam X marks - Left column (centered at x≈288) ----
+  { key: 'kham_1',   x: 288, y: 421.5, size: 12, maxW: 20 },
+  { key: 'kham_2',   x: 288, y: 402.6, size: 12, maxW: 20 },
+  { key: 'kham_3',   x: 288, y: 383.7, size: 12, maxW: 20 },
+  { key: 'kham_4',   x: 288, y: 364.8, size: 12, maxW: 20 },
+  { key: 'kham_4_1', x: 288, y: 345.9, size: 12, maxW: 20 },
+  { key: 'kham_4_2', x: 288, y: 327.0, size: 12, maxW: 20 },
+  { key: 'kham_4_3', x: 288, y: 310.4, size: 12, maxW: 20 },
+  { key: 'kham_4_4', x: 288, y: 293.8, size: 12, maxW: 20 },
+  { key: 'kham_5',   x: 288, y: 277.2, size: 12, maxW: 20 },
+  { key: 'kham_6',   x: 288, y: 260.6, size: 12, maxW: 20 },
 
-  // ---- Exam X marks - Right column (centered at x≈524) ----
-  { key: 'kham_7',   x: 520, y: 433.0, size: 12, maxW: 20 },
-  { key: 'kham_7_1', x: 520, y: 418.7, size: 12, maxW: 20 },
-  { key: 'kham_7_2', x: 520, y: 404.4, size: 12, maxW: 20 },
-  { key: 'kham_7_3', x: 520, y: 390.1, size: 12, maxW: 20 },
-  { key: 'kham_7_4', x: 520, y: 375.8, size: 12, maxW: 20 },
-  { key: 'kham_7_5', x: 520, y: 361.5, size: 12, maxW: 20 },
-  { key: 'kham_8',   x: 520, y: 347.2, size: 12, maxW: 20 },
-  { key: 'kham_8_1', x: 520, y: 332.9, size: 12, maxW: 20 },
-  { key: 'kham_8_2', x: 520, y: 318.6, size: 12, maxW: 20 },
-  { key: 'kham_9',   x: 520, y: 304.3, size: 12, maxW: 20 },
+  // ---- Exam X marks - Right column (centered at x≈520) ----
+  { key: 'kham_7',   x: 520, y: 421.5, size: 12, maxW: 20 },
+  { key: 'kham_7_1', x: 520, y: 402.6, size: 12, maxW: 20 },
+  { key: 'kham_7_2', x: 520, y: 383.7, size: 12, maxW: 20 },
+  { key: 'kham_7_3', x: 520, y: 364.8, size: 12, maxW: 20 },
+  { key: 'kham_7_4', x: 520, y: 345.9, size: 12, maxW: 20 },
+  { key: 'kham_7_5', x: 520, y: 327.0, size: 12, maxW: 20 },
+  { key: 'kham_8',   x: 520, y: 310.4, size: 12, maxW: 20 },
+  { key: 'kham_8_1', x: 520, y: 293.8, size: 12, maxW: 20 },
+  { key: 'kham_8_2', x: 520, y: 277.2, size: 12, maxW: 20 },
+  { key: 'kham_9',   x: 520, y: 260.6, size: 12, maxW: 20 },
 ];
 
 export async function generatePDF(
