@@ -106,12 +106,12 @@ export function KSelectionModal() {
                         Mục khám: {tempK.join(', ')}
                       </span>
                     </div>
-                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-2.5 max-h-48 overflow-y-auto">
-                      <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-2.5 max-h-36 overflow-y-auto">
+                      <div className="grid grid-cols-1 gap-y-1">
                         {EXAM_ITEMS.filter((item) => examItems.has(item.id)).map((item) => (
-                          <div key={item.id} className="flex items-center gap-1 text-xs">
+                          <div key={item.id} className="flex items-center gap-1.5 text-xs">
                             <span className="text-rose-500 font-bold shrink-0">✓</span>
-                            <span className={`${item.parent ? 'font-semibold' : 'text-gray-600'} truncate`} title={`${item.id}. ${item.label}`}>
+                            <span className={`${item.parent ? 'font-semibold' : 'text-gray-600'} whitespace-nowrap`}>
                               {item.id}. {item.label}
                             </span>
                           </div>
