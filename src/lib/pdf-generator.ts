@@ -70,8 +70,8 @@ const PAGE2_FIELDS: FieldDef[] = [
   // After "Giới tính:" x2=293.5
   { key: 'gioi_tinh_p2',   x: 296.5, y: 693.0, size: 12, maxW: 255 },
   // After ":" at x≈172.5, before "Ngày cấp:" starts at x≈235.5
-  // Size 10 so 12-digit CCCD fits (60pt at size 10, space = 63pt)
-  { key: 'so_gttt',        x: 172.5, y: 676.0, size: 10, maxW: 62 },
+  // Size 9 so 12-digit CCCD fits with ~9pt gap before "Ngày cấp:" (54pt at size 9, space = 63pt)
+  { key: 'so_gttt',        x: 172.5, y: 676.9, size: 9, maxW: 63 },
   // After "Ngày cấp:" colon x2≈284.5 — size 12 matching label size
   { key: 'ngay_cap',       x: 287.5, y: 676.0, size: 12, maxW: 265 },
   // After "Nơi cấp:" x2=114.4 — wider spacing for place name
