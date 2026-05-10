@@ -70,10 +70,10 @@ const PAGE2_FIELDS: FieldDef[] = [
   // After "Giới tính:" x2=293.5
   { key: 'gioi_tinh_p2',   x: 296.5, y: 693.0, size: 12, maxW: 255 },
   // After ":" at x≈172.5, before "Ngày cấp:" starts at x≈235.5
-  // Size 11 so CCCD numbers fit comfortably (9 digits = 49.5pt at size 11, space = 63pt)
-  { key: 'so_gttt',        x: 175.0, y: 676.0, size: 11, maxW: 58 },
-  // After "Ngày cấp:" colon x2≈284.5 — size 13 matching other fields
-  { key: 'ngay_cap',       x: 287.5, y: 676.0, size: 13, maxW: 265 },
+  // Size 10 so 12-digit CCCD fits (60pt at size 10, space = 63pt)
+  { key: 'so_gttt',        x: 172.5, y: 676.0, size: 10, maxW: 62 },
+  // After "Ngày cấp:" colon x2≈284.5 — size 12 matching label size
+  { key: 'ngay_cap',       x: 287.5, y: 676.0, size: 12, maxW: 265 },
   // After "Nơi cấp:" x2=114.4 — wider spacing for place name
   { key: 'noi_cap',        x: 117.4, y: 659.2, size: 12, maxW: 430 },
 
@@ -99,6 +99,12 @@ const PAGE2_FIELDS: FieldDef[] = [
   { key: 'muc_kham',       x: 127.7, y: 478.4, size: 12, maxW: 420 },
   // After "Nội dung cần kiểm tra bổ sung:" x2=188.3
   { key: 'ghi_chu',        x: 191.3, y: 211.1, size: 12, maxW: 360 },
+
+  // ---- Dotted lines for handwriting ----
+  // Below "An Giang, ngày … tháng … năm ……" line (y_top≈657)
+  { key: 'dots_angiang',   x: 322.1, y: 174.2, size: 12, maxW: 200 },
+  // Below "Nội dung cần kiểm tra bổ sung:" (y_top≈632)
+  { key: 'dots_bosung',    x: 34.1,  y: 199.2, size: 12, maxW: 520 },
 
   // ---- Exam X marks - Left column (centered at x≈292) ----
   { key: 'kham_1',   x: 288, y: 433.0, size: 12, maxW: 20 },
@@ -178,6 +184,10 @@ export async function generatePDF(
     // Page 2 - Section III
     muc_kham: mucKham,
     ghi_chu:  data.ghi_chu,
+
+    // Dotted lines (always visible)
+    dots_angiang: '.'.repeat(60),
+    dots_bosung:   '.'.repeat(170),
 
     // Exam X marks
     kham_1:   examItems.has('1')   ? 'X' : '',
