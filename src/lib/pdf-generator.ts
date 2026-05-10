@@ -5,10 +5,17 @@ import { join } from 'path';
 /**
  * PDF Generator using pdf-lib + pre-converted blank template PDF.
  *
- * Coordinates are taken directly from the original DOCX template's
- * placeholder positions (converted to pdf-lib bottom-left origin).
- * Font size 13 matches the original template placeholders.
- * Liberation Serif is the same font used by the template.
+ * Coordinates derived from exact label positions in the template PDF
+ * (analyzed with PyMuPDF, verified visually).
+ *
+ * Page 1 labels use size 13 → fill text also size 13.
+ * Page 2 labels use size 12 → fill text uses size 12 (or smaller for tight fields).
+ * Date fields (ngay_sinh, ngay_sinh_dd) use size 11 for wider spacing.
+ * Liberation Serif Regular matches the template's font family.
+ *
+ * Y conversion: pdf_lib_y = PAGE_HEIGHT - (label_y_top + ASCENT_FACTOR * label_size)
+ * ASCENT_FACTOR = 0.89111328125 (Liberation Serif)
+ * PAGE_HEIGHT = 841.89
  */
 
 function fmtDate(dateStr: string): string {
@@ -31,67 +38,91 @@ interface FieldDef {
 }
 
 // =============================================================================
-// Page 1 (Cover page) - positions from original template
+// Page 1 (Cover page) - labels at size 13, fill at size 13
+// X = label_x2 + 3pt gap
+// Y = 841.89 - (label_y_top + 11.58)  [ascent at size 13 = 11.58]
 // =============================================================================
 const PAGE1_FIELDS: FieldDef[] = [
-  // Y values from original +3pt offset (pdf-lib baseline adjustment)
-  { key: 'ho_ten',    x: 99,  y: 499.5, size: 13, maxW: 440 },
-  { key: 'ngay_sinh', x: 167, y: 474.2, size: 13, maxW: 130 },
-  { key: 'gioi_tinh', x: 355, y: 474.2, size: 13, maxW: 200 },
-  { key: 'sdt',       x: 73,  y: 448.6, size: 13, maxW: 140 },
-  { key: 'dia_chi',   x: 216, y: 449.5, size: 13, maxW: 340 },
+  // After "Họ và tên:" x2=98.7
+  { key: 'ho_ten',    x: 101.7, y: 499.3, size: 13, maxW: 450 },
+  // After "Ngày/tháng/năm sinh:" x2=162.9, before "Giới tính:" at x=234.1
+  { key: 'ngay_sinh', x: 165.9, y: 476.2, size: 13, maxW: 65 },
+  // After "Giới tính:" x2=288.0
+  { key: 'gioi_tinh', x: 291.0, y: 476.2, size: 13, maxW: 260 },
+  // After "SĐT:" x2=72.7, before "Địa chỉ:" at x=179.6
+  { key: 'sdt',       x:  75.7, y: 452.8, size: 13, maxW: 100 },
+  // After "Địa chỉ:" x2=224.4
+  { key: 'dia_chi',   x: 227.4, y: 452.8, size: 13, maxW: 320 },
 ];
 
 // =============================================================================
-// Page 2 (Request form) - positions from original template placeholders
-// All placeholders use size=13 in the original template
+// Page 2 (Request form) - labels at size 12
+// Y = 841.89 - (label_y_top + 10.69)  [ascent at size 12 = 10.69]
+// Date fields use size 11 for wider spacing in tight spaces
 // =============================================================================
 const PAGE2_FIELDS: FieldDef[] = [
   // ---- Section I: Person info ----
-  // Y values +3pt offset for pdf-lib baseline alignment
-  { key: 'ho_ten_p2',      x: 123, y: 711.1, size: 13, maxW: 440 },
-  { key: 'ngay_sinh_p2',   x: 182, y: 693.2, size: 13, maxW: 122 },
-  { key: 'gioi_tinh_p2',   x: 360, y: 693.2, size: 13, maxW: 200 },
-  // so_gttt: use size 10 so CCCD numbers fit in the narrow space (48pt)
-  { key: 'so_gttt',        x: 176, y: 675.2, size: 10, maxW: 48 },
-  { key: 'ngay_cap',       x: 338, y: 675.2, size: 13, maxW: 220 },
-  { key: 'noi_cap',        x: 114, y: 657.3, size: 13, maxW: 440 },
+  // After "Họ và tên:" x2=123.1
+  { key: 'ho_ten_p2',      x: 126.1, y: 710.9, size: 12, maxW: 420 },
+  // After "Ngày/tháng/năm sinh:" x2=182.3, before "Giới tính:" at x=240.9
+  // Size 11 for wider spacing (date "dd/mm/yyyy" = 50pt at size 11, fits in 55pt)
+  { key: 'ngay_sinh_p2',   x: 185.4, y: 693.0, size: 11, maxW: 53 },
+  // After "Giới tính:" x2=293.5
+  { key: 'gioi_tinh_p2',   x: 296.5, y: 693.0, size: 12, maxW: 255 },
+  // After ":" at x≈169.2, before "Ngày cấp:" starts at x≈235.5
+  // Size 10 for CCCD numbers (9 digits = 45pt at size 10, fits in 60pt)
+  { key: 'so_gttt',        x: 172.0, y: 676.0, size: 10, maxW: 60 },
+  // After "Ngày cấp:" x2=287.5 — wider spacing for date
+  { key: 'ngay_cap',       x: 290.5, y: 676.0, size: 12, maxW: 260 },
+  // After "Nơi cấp:" x2=114.4 — wider spacing for place name
+  { key: 'noi_cap',        x: 117.4, y: 659.2, size: 12, maxW: 430 },
 
   // ---- Section II: Representative ----
-  { key: 'nguoi_dai_dien', x: 99,  y: 622.5, size: 13, maxW: 460 },
-  { key: 'ngay_sinh_dd',   x: 161, y: 604.6, size: 13, maxW: 158 },
-  { key: 'gioi_tinh_dd',   x: 372, y: 604.6, size: 13, maxW: 188 },
-  // so_gttt_dd: more space here, keep size 13
-  { key: 'so_gttt_dd',     x: 153, y: 586.6, size: 13, maxW: 170 },
-  { key: 'noi_cap_dd',     x: 379, y: 586.6, size: 13, maxW: 180 },
-  { key: 'noi_cap_dd_l2',  x: 78,  y: 568.7, size: 13, maxW: 480 },
-  { key: 'quan_he',        x: 267, y: 547.7, size: 13, maxW: 290 },
+  // After "1. Họ và tên:" x2=99.1
+  { key: 'nguoi_dai_dien', x: 102.1, y: 625.6, size: 12, maxW: 445 },
+  // After "2. Ngày/tháng/năm sinh:" x2=152.3, before "Giới tính:" at x=214.1
+  // Size 11 for wider spacing
+  { key: 'ngay_sinh_dd',   x: 155.3, y: 608.8, size: 11, maxW: 55 },
+  // After "Giới tính:" x2=263.8
+  { key: 'gioi_tinh_dd',   x: 266.8, y: 608.8, size: 12, maxW: 285 },
+  // After ":" x2=148.5, before "Ngày cấp:" at x=254.6
+  { key: 'so_gttt_dd',     x: 151.5, y: 592.0, size: 12, maxW: 100 },
+  // After "Ngày cấp:" x2=306.5 — wider spacing for date
+  { key: 'ngay_cap_dd',    x: 309.5, y: 592.0, size: 12, maxW: 240 },
+  // After "Nơi cấp:" x2=78.4 — wider spacing for place name
+  { key: 'noi_cap_dd',     x:  81.4, y: 575.2, size: 12, maxW: 470 },
+  // After "4. Quan hệ với Người được kiểm tra sức khỏe:" x2=266.7
+  { key: 'quan_he',        x: 269.7, y: 555.4, size: 12, maxW: 280 },
 
   // ---- Section III: Exam content ----
-  { key: 'muc_kham',       x: 125, y: 469.6, size: 13, maxW: 430 },
-  { key: 'ghi_chu',        x: 190, y: 165.5, size: 12, maxW: 370 },
+  // After "Mức khám:" x2=124.7
+  { key: 'muc_kham',       x: 127.7, y: 478.4, size: 12, maxW: 420 },
+  // After "Nội dung cần kiểm tra bổ sung:" x2=188.3
+  { key: 'ghi_chu',        x: 191.3, y: 211.1, size: 12, maxW: 360 },
 
-  // ---- Exam X marks - Left column ----
-  { key: 'kham_1',   x: 271, y: 424.2, size: 10, maxW: 25 },
-  { key: 'kham_2',   x: 271, y: 405.3, size: 10, maxW: 25 },
-  { key: 'kham_3',   x: 271, y: 386.4, size: 10, maxW: 25 },
-  { key: 'kham_4',   x: 271, y: 367.5, size: 10, maxW: 25 },
-  { key: 'kham_4_1', x: 271, y: 348.6, size: 10, maxW: 25 },
-  { key: 'kham_4_2', x: 271, y: 329.7, size: 10, maxW: 25 },
-  { key: 'kham_4_3', x: 271, y: 313.1, size: 10, maxW: 25 },
-  { key: 'kham_4_4', x: 271, y: 296.5, size: 10, maxW: 25 },
-  { key: 'kham_5',   x: 271, y: 279.9, size: 10, maxW: 25 },
-  { key: 'kham_6',   x: 271, y: 263.3, size: 10, maxW: 25 },
+  // ---- Exam X marks - Left column (centered at x≈292) ----
+  { key: 'kham_1',   x: 288, y: 433.0, size: 12, maxW: 20 },
+  { key: 'kham_2',   x: 288, y: 418.7, size: 12, maxW: 20 },
+  { key: 'kham_3',   x: 288, y: 404.4, size: 12, maxW: 20 },
+  { key: 'kham_4',   x: 288, y: 390.1, size: 12, maxW: 20 },
+  { key: 'kham_4_1', x: 288, y: 375.8, size: 12, maxW: 20 },
+  { key: 'kham_4_2', x: 288, y: 361.5, size: 12, maxW: 20 },
+  { key: 'kham_4_3', x: 288, y: 347.2, size: 12, maxW: 20 },
+  { key: 'kham_4_4', x: 288, y: 332.9, size: 12, maxW: 20 },
+  { key: 'kham_5',   x: 288, y: 318.6, size: 12, maxW: 20 },
+  { key: 'kham_6',   x: 288, y: 304.3, size: 12, maxW: 20 },
 
-  // ---- Exam X marks - Right column ----
-  { key: 'kham_7',   x: 509, y: 428.8, size: 10, maxW: 25 },
-  { key: 'kham_7_1', x: 509, y: 409.9, size: 10, maxW: 25 },
-  { key: 'kham_7_2', x: 509, y: 391.0, size: 10, maxW: 25 },
-  { key: 'kham_7_3', x: 509, y: 372.1, size: 10, maxW: 25 },
-  { key: 'kham_7_4', x: 509, y: 353.2, size: 10, maxW: 25 },
-  { key: 'kham_7_5', x: 509, y: 334.3, size: 10, maxW: 25 },
-  { key: 'kham_8',   x: 509, y: 301.1, size: 10, maxW: 25 },
-  { key: 'kham_9',   x: 509, y: 267.9, size: 10, maxW: 25 },
+  // ---- Exam X marks - Right column (centered at x≈524) ----
+  { key: 'kham_7',   x: 520, y: 433.0, size: 12, maxW: 20 },
+  { key: 'kham_7_1', x: 520, y: 418.7, size: 12, maxW: 20 },
+  { key: 'kham_7_2', x: 520, y: 404.4, size: 12, maxW: 20 },
+  { key: 'kham_7_3', x: 520, y: 390.1, size: 12, maxW: 20 },
+  { key: 'kham_7_4', x: 520, y: 375.8, size: 12, maxW: 20 },
+  { key: 'kham_7_5', x: 520, y: 361.5, size: 12, maxW: 20 },
+  { key: 'kham_8',   x: 520, y: 347.2, size: 12, maxW: 20 },
+  { key: 'kham_8_1', x: 520, y: 332.9, size: 12, maxW: 20 },
+  { key: 'kham_8_2', x: 520, y: 318.6, size: 12, maxW: 20 },
+  { key: 'kham_9',   x: 520, y: 304.3, size: 12, maxW: 20 },
 ];
 
 export async function generatePDF(
@@ -110,7 +141,7 @@ export async function generatePDF(
   const pdfDoc = await PDFDocument.load(templateBytes);
   pdfDoc.registerFontkit(fontkit);
 
-  // Embed Liberation Serif font (same font as the template!)
+  // Embed Liberation Serif font (same font as the template)
   const fontPath = join(process.cwd(), 'public', 'fonts', 'LiberationSerif-Regular.ttf');
   const fontBytes = readFileSync(fontPath);
   const font = await pdfDoc.embedFont(fontBytes);
@@ -140,8 +171,8 @@ export async function generatePDF(
     ngay_sinh_dd:   fmtDate(data.ngay_sinh_dd),
     gioi_tinh_dd:   data.gioi_tinh_dd,
     so_gttt_dd:     data.so_gttt_dd,
-    noi_cap_dd:     data.noi_cap_dd ? `${fmtDate(data.ngay_cap_dd)} - ${data.noi_cap_dd}` : fmtDate(data.ngay_cap_dd),
-    noi_cap_dd_l2:  '',
+    ngay_cap_dd:    fmtDate(data.ngay_cap_dd),
+    noi_cap_dd:     data.noi_cap_dd,
     quan_he:        data.quan_he,
 
     // Page 2 - Section III
@@ -166,6 +197,8 @@ export async function generatePDF(
     kham_7_4: examItems.has('7_4') ? 'X' : '',
     kham_7_5: examItems.has('7_5') ? 'X' : '',
     kham_8:   examItems.has('8')   ? 'X' : '',
+    kham_8_1: examItems.has('8_1') ? 'X' : '',
+    kham_8_2: examItems.has('8_2') ? 'X' : '',
     kham_9:   examItems.has('9')   ? 'X' : '',
   };
 
