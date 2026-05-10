@@ -58,7 +58,7 @@ const PAGE2_FIELDS: FieldDef[] = [
   { key: 'ho_ten_p2',      x: 124, y: 708.3, size: 12, maxW: 300 },
   { key: 'ngay_sinh_p2',   x: 183, y: 690.4, size: 12, maxW: 100 },
   { key: 'gioi_tinh_p2',   x: 294, y: 690.4, size: 12, maxW: 80  },
-  { key: 'so_gttt',        x: 173, y: 673.4, size: 12, maxW: 110 },
+  { key: 'so_gttt',        x: 173, y: 673.4, size: 12, maxW: 77  },  // must not overlap "Ngày cấp" at x=254.6
   { key: 'ngay_cap',       x: 288, y: 673.4, size: 12, maxW: 120 },
   { key: 'noi_cap',        x: 115, y: 656.6, size: 12, maxW: 400 },
 
@@ -70,7 +70,7 @@ const PAGE2_FIELDS: FieldDef[] = [
   { key: 'nguoi_dai_dien', x: 100, y: 623.0, size: 12, maxW: 360 },
   { key: 'ngay_sinh_dd',   x: 153, y: 606.2, size: 12, maxW: 120 },
   { key: 'gioi_tinh_dd',   x: 264, y: 606.2, size: 12, maxW: 80  },
-  { key: 'so_gttt_dd',     x: 149, y: 589.4, size: 12, maxW: 100 },
+  { key: 'so_gttt_dd',     x: 149, y: 589.4, size: 12, maxW: 100 },  // must not overlap "Ngày cấp" at x=254.6
   { key: 'noi_cap_dd',     x: 307, y: 589.4, size: 12, maxW: 120 },
   { key: 'noi_cap_dd_l2',  x: 79,  y: 572.6, size: 12, maxW: 400 },
   { key: 'quan_he',        x: 267, y: 552.8, size: 12, maxW: 200 },
