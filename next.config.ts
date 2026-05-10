@@ -7,7 +7,13 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: false,
   // Increase body size limit for PDF file uploads
-  serverExternalPackages: ['@pdf-lib/fontkit'],
+  serverExternalPackages: ['@pdf-lib/fontkit', 'libreoffice-convert'],
+  // Allow large file uploads
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '50mb',
+    },
+  },
 };
 
 export default nextConfig;
