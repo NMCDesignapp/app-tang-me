@@ -1,0 +1,24 @@
+{
+  "name": "Tặng Mẹ Sen",
+  "short_name": "Tặng Mẹ Sen",
+  "description": "Hệ thống tạo hồ sơ kiểm tra sức khỏe - Bảo Việt Nhân thọ An Giang",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fff1f2",
+  "theme_color": "#f43f5e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

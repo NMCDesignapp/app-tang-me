@@ -32,6 +32,9 @@ interface AppState {
   selectedAttachments: number[];
   setSelectedAttachments: (nums: number[]) => void;
 
+  // Reset all form data
+  resetForm: () => void;
+
   // Loading
   isGenerating: boolean;
   setIsGenerating: (val: boolean) => void;
@@ -197,6 +200,31 @@ export const useAppStore = create<AppState>((set, get) => ({
   setSelectedAttachments: (nums) => {
     set({ selectedAttachments: nums });
     saveToLS(LS_KEY_ATTACH, nums);
+  },
+
+  resetForm: () => {
+    const emptyForm: FormData = {
+      ho_ten: '',
+      ngay_sinh: '',
+      gioi_tinh: 'Nam',
+      so_gttt: '',
+      ngay_cap: '',
+      noi_cap: '',
+      sdt: '',
+      dia_chi: '',
+      ghi_chu: '',
+      nguoi_dai_dien: '',
+      ngay_sinh_dd: '',
+      gioi_tinh_dd: 'Nam',
+      so_gttt_dd: '',
+      ngay_cap_dd: '',
+      noi_cap_dd: '',
+      quan_he: '',
+    };
+    set({ formData: emptyForm, selectedK: [], selectedAttachments: [] });
+    saveToLS(LS_KEY_FORM, emptyForm);
+    saveToLS(LS_KEY_K, []);
+    saveToLS(LS_KEY_ATTACH, []);
   },
 
   isGenerating: false,

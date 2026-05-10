@@ -4,22 +4,31 @@ import { useAppStore, hydrateStore } from '@/lib/store';
 import { KSelectionModal } from './k-selection-modal';
 import { SettingsModal } from './settings-modal';
 import { PersonalInfoForm } from './personal-info-form';
+import { PwaInstallPrompt } from './pwa-install-prompt';
 import { Button } from '@/components/ui/button';
-import { Download, Loader2, FileUp } from 'lucide-react';
+import { Download, Loader2, FileUp, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 export default function HomePage() {
-  const { formData, selectedK, uploadedPdfs, selectedAttachments, isGenerating, setIsGenerating } =
+  const { formData, selectedK, uploadedPdfs, selectedAttachments, isGenerating, setIsGenerating, resetForm } =
     useAppStore();
   const [hydrated, setHydrated] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Hydrate store from localStorage + IndexedDB on mount
   useEffect(() => {
     hydrateStore().then(() => setHydrated(true));
   }, []);
 
-  const handleExport = async () => {
+  // Register service worker for PWA
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  }, []);
+
+  const handleExport = useCallback(async () => {
     if (selectedK.length === 0) {
       toast.error('Vui lòng chọn ít nhất một gói khám');
       return;
@@ -73,19 +82,30 @@ export default function HomePage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toast.success('Xuất PDF thành công!');
+      // Show success animation then reset form
+      setShowSuccess(true);
+      toast.success('Xuất PDF thành công!', { description: 'Đã tự động xóa dữ liệu mẫu' });
+
+      // Wait a moment then clear form
+      setTimeout(() => {
+        resetForm();
+        setShowSuccess(false);
+      }, 1800);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Lỗi không xác định';
       toast.error(`Lỗi: ${message}`);
     } finally {
       setIsGenerating(false);
     }
-  };
+  }, [formData, selectedK, selectedAttachments, uploadedPdfs, setIsGenerating, resetForm]);
 
   if (!hydrated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 flex items-center justify-center">
-        <div className="text-rose-400 animate-pulse text-sm">Đang tải dữ liệu...</div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-3 border-rose-200 border-t-rose-500 rounded-full animate-spin" />
+          <div className="text-rose-400 text-sm font-medium">Đang tải dữ liệu...</div>
+        </div>
       </div>
     );
   }
@@ -93,11 +113,11 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50">
       {/* Sticky Header */}
-      <header className="sticky top-0 z-50 bg-gradient-to-r from-rose-400 via-pink-400 to-rose-500 px-4 py-4 text-center shadow-lg">
+      <header className="sticky top-0 z-50 bg-gradient-to-r from-rose-400 via-pink-400 to-rose-500 px-4 py-4 text-center shadow-lg backdrop-blur-sm">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex-1" />
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-md">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-md tracking-tight">
               Tặng Mẹ Sen
             </h1>
             <p className="text-rose-100 mt-0.5 text-xs tracking-wider font-medium">
@@ -120,27 +140,43 @@ export default function HomePage() {
           <PopupFileSelect />
         </div>
 
-        {/* Export Button */}
+        {/* Export Button with glow effect */}
         <div className="pt-2 pb-8">
-          <Button
-            onClick={handleExport}
-            disabled={isGenerating}
-            className="w-full h-14 text-lg font-bold rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white shadow-lg shadow-rose-200 hover:shadow-rose-300 transition-all hover:scale-[1.01] active:scale-[0.99]"
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                Đang tạo PDF...
-              </>
-            ) : (
-              <>
-                <Download className="h-5 w-5 mr-2" />
-                Xuất file PDF
-              </>
-            )}
-          </Button>
+          {showSuccess ? (
+            <div className="w-full h-14 rounded-2xl bg-gradient-to-r from-emerald-400 to-green-500 flex items-center justify-center gap-2 text-white font-bold text-lg shadow-lg shadow-green-200 animate-in fade-in zoom-in-95 duration-500">
+              <Sparkles className="h-5 w-5 animate-pulse" />
+              Xuất PDF thành công!
+            </div>
+          ) : (
+            <Button
+              onClick={handleExport}
+              disabled={isGenerating}
+              className="group w-full h-14 text-lg font-bold rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white shadow-lg shadow-rose-200/60 hover:shadow-xl hover:shadow-rose-300/60 transition-all duration-300 hover:scale-[1.02] active:scale-[0.97] relative overflow-hidden"
+            >
+              {/* Glow pulse ring */}
+              <span className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-pulse bg-gradient-to-r from-rose-400/30 via-pink-400/30 to-rose-400/30" />
+              {/* Shimmer sweep */}
+              <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12" />
+              <span className="relative flex items-center gap-2">
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Đang tạo PDF...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-5 w-5 transition-transform duration-200 group-hover:translate-y-0.5" />
+                    Xuất file PDF
+                  </>
+                )}
+              </span>
+            </Button>
+          )}
         </div>
       </main>
+
+      {/* PWA Install Prompt */}
+      <PwaInstallPrompt />
     </div>
   );
 }
@@ -168,7 +204,7 @@ function PopupFileSelect() {
       <Button
         variant="outline"
         onClick={() => setOpen(true)}
-        className={`h-auto py-2.5 px-4 flex items-center gap-2 rounded-xl border-2 transition-all text-sm ${
+        className={`h-auto py-2.5 px-4 flex items-center gap-2 rounded-xl border-2 transition-all duration-200 text-sm ${
           selectedAttachments.length > 0
             ? 'border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100'
             : uploadedPdfs.size > 0
@@ -186,9 +222,9 @@ function PopupFileSelect() {
 
       {/* Small popup for selecting which files to attach */}
       {open && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setOpen(false)}>
           <div
-            className="bg-white rounded-2xl shadow-2xl p-5 w-[90vw] max-w-sm mx-4 animate-in fade-in zoom-in-95"
+            className="bg-white rounded-2xl shadow-2xl p-5 w-[90vw] max-w-sm mx-4 animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-300"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -198,7 +234,7 @@ function PopupFileSelect() {
               </h3>
               <button
                 onClick={() => setOpen(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
               >
                 ✕
               </button>
@@ -211,7 +247,7 @@ function PopupFileSelect() {
                   return (
                     <label
                       key={index}
-                      className={`flex items-center gap-3 p-2.5 rounded-xl border-2 cursor-pointer transition-all ${
+                      className={`flex items-center gap-3 p-2.5 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
                         isSelected
                           ? 'border-rose-400 bg-rose-50'
                           : 'border-gray-100 hover:border-rose-200'

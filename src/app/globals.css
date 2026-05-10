@@ -120,3 +120,72 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Smooth transitions everywhere */
+@layer utilities {
+  /* Smooth page transitions */
+  .page-enter {
+    animation: pageEnter 0.4s ease-out;
+  }
+
+  /* Touch feedback for interactive elements */
+  .touch-feedback {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .touch-feedback:active {
+    transform: scale(0.97);
+  }
+
+  /* Glow pulse for export button */
+  @keyframes glowPulse {
+    0%, 100% { box-shadow: 0 0 15px rgba(244, 63, 94, 0.3), 0 4px 15px rgba(244, 63, 94, 0.15); }
+    50% { box-shadow: 0 0 25px rgba(244, 63, 94, 0.5), 0 4px 20px rgba(244, 63, 94, 0.25); }
+  }
+  .glow-pulse {
+    animation: glowPulse 2s ease-in-out infinite;
+  }
+
+  /* Shimmer sweep effect */
+  @keyframes shimmer {
+    0% { transform: translateX(-100%) skewX(-12deg); }
+    100% { transform: translateX(200%) skewX(-12deg); }
+  }
+  .shimmer-on-hover:hover::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent);
+    animation: shimmer 0.8s ease-in-out;
+  }
+
+  /* Success checkmark */
+  @keyframes successPop {
+    0% { transform: scale(0.5); opacity: 0; }
+    60% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .success-pop {
+    animation: successPop 0.5s ease-out;
+  }
+}
+
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Better mobile experience */
+@media (hover: none) {
+  * {
+    -webkit-touch-callout: none;
+  }
+  input, textarea, select {
+    -webkit-touch-callout: default;
+  }
+}
