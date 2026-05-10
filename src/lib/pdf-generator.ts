@@ -102,9 +102,8 @@ const PAGE2_FIELDS: FieldDef[] = [
 
   // ---- Dotted lines for handwriting ----
   // After ":" on same line as "Nội dung cần kiểm tra bổ sung:" (y_top≈620.1)
-  { key: 'dots_bosung',    x: 191.3, y: 211.1, size: 12, maxW: 380 },
-  // Below "Nội dung cần kiểm tra bổ sung:" line (y_top≈637)
-  { key: 'dots_bosung_l2', x: 34.1,  y: 195.1, size: 11, maxW: 540 },
+  // Moved down ~4pt from 211.1 → 207.1 per user request
+  { key: 'dots_bosung',    x: 191.3, y: 207.1, size: 12, maxW: 380 },
 
   // ---- Exam X marks - Left column (centered at x≈292) ----
   { key: 'kham_1',   x: 288, y: 433.0, size: 12, maxW: 20 },
@@ -187,7 +186,6 @@ export async function generatePDF(
 
     // Dotted lines (always visible)
     dots_bosung:    '.'.repeat(126),
-    dots_bosung_l2: '.'.repeat(140),
 
     // Exam X marks
     kham_1:   examItems.has('1')   ? 'X' : '',
