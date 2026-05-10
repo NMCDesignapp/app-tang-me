@@ -5,8 +5,7 @@ import { KSelectionModal } from './k-selection-modal';
 import { SettingsModal } from './settings-modal';
 import { PersonalInfoForm } from './personal-info-form';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Download, Loader2, Stethoscope, FileUp, Settings } from 'lucide-react';
+import { Download, Loader2, FileUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEffect, useState } from 'react';
 
@@ -112,32 +111,6 @@ export default function HomePage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-        {/* Status Badges - compact inline info */}
-        <div className="flex flex-wrap gap-2 justify-center">
-          <Badge
-            variant={selectedK.length > 0 ? 'default' : 'secondary'}
-            className={`rounded-full px-3 py-1 text-xs ${
-              selectedK.length > 0
-                ? 'bg-rose-100 text-rose-700 hover:bg-rose-200'
-                : 'bg-gray-100 text-gray-400'
-            }`}
-          >
-            <Stethoscope className="h-3 w-3 mr-1" />
-            {selectedK.length > 0 ? selectedK.join(', ') : 'Chưa chọn K'}
-          </Badge>
-          <Badge
-            variant={uploadedPdfs.size > 0 ? 'default' : 'secondary'}
-            className={`rounded-full px-3 py-1 text-xs ${
-              uploadedPdfs.size > 0
-                ? 'bg-rose-100 text-rose-700 hover:bg-rose-200'
-                : 'bg-gray-100 text-gray-400'
-            }`}
-          >
-            <FileUp className="h-3 w-3 mr-1" />
-            {uploadedPdfs.size > 0 ? `${uploadedPdfs.size} file MS · ${selectedAttachments.length} đính kèm` : 'Chưa có file MS'}
-          </Badge>
-        </div>
-
         {/* Personal Info Form */}
         <PersonalInfoForm />
 

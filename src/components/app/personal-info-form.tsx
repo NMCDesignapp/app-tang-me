@@ -12,11 +12,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { User, Users } from 'lucide-react';
+import { User, Users, ChevronDown, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
 
 export function PersonalInfoForm() {
   const { formData, setFormData } = useAppStore();
+  const [showRepresentative, setShowRepresentative] = useState(false);
 
   const update = (field: string, value: string) => {
     setFormData({ [field]: value });
@@ -130,92 +131,102 @@ export function PersonalInfoForm() {
         </div>
       </div>
 
-      <Separator className="bg-rose-100" />
+      {/* Representative section - collapsible, hidden by default */}
+      <button
+        type="button"
+        onClick={() => setShowRepresentative(!showRepresentative)}
+        className="w-full bg-gradient-to-r from-pink-50 to-rose-50 px-6 py-3 border-t border-rose-100 flex items-center justify-between hover:from-pink-100 hover:to-rose-100 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <Users className="h-4 w-4 text-rose-500" />
+          <span className="text-rose-700 font-semibold text-sm">Người đại diện theo pháp luật</span>
+          <span className="text-xs text-rose-400">(dưới 18 tuổi)</span>
+        </div>
+        {showRepresentative ? (
+          <ChevronDown className="h-4 w-4 text-rose-400" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-rose-400" />
+        )}
+      </button>
 
-      {/* Representative section */}
-      <div className="bg-gradient-to-r from-pink-50 to-rose-50 px-6 py-4 border-b border-rose-100">
-        <h3 className="flex items-center gap-2 text-rose-700 font-bold text-base">
-          <Users className="h-5 w-5" />
-          Người đại diện theo pháp luật
-        </h3>
-        <p className="text-xs text-rose-400 mt-0.5">Nếu người được KTSK dưới 18 tuổi</p>
-      </div>
-      <div className="p-6 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="sm:col-span-2">
-            <Label className="text-rose-600 font-semibold text-sm">Họ tên người đại diện</Label>
-            <Input
-              value={formData.nguoi_dai_dien}
-              onChange={(e) => update('nguoi_dai_dien', e.target.value)}
-              className="mt-1 rounded-xl border-rose-200 focus:border-rose-400 focus:ring-rose-200"
-              placeholder="Họ và tên người đại diện"
-            />
-          </div>
+      {showRepresentative && (
+        <div className="p-6 space-y-4 border-t border-rose-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <Label className="text-rose-600 font-semibold text-sm">Họ tên người đại diện</Label>
+              <Input
+                value={formData.nguoi_dai_dien}
+                onChange={(e) => update('nguoi_dai_dien', e.target.value)}
+                className="mt-1 rounded-xl border-rose-200 focus:border-rose-400 focus:ring-rose-200"
+                placeholder="Họ và tên người đại diện"
+              />
+            </div>
 
-          <div>
-            <Label className="text-rose-600 font-semibold text-sm">Ngày sinh</Label>
-            <Input
-              type="date"
-              value={formData.ngay_sinh_dd}
-              onChange={(e) => update('ngay_sinh_dd', e.target.value)}
-              className="mt-1 rounded-xl border-rose-200 focus:border-rose-400 focus:ring-rose-200"
-            />
-          </div>
+            <div>
+              <Label className="text-rose-600 font-semibold text-sm">Ngày sinh</Label>
+              <Input
+                type="date"
+                value={formData.ngay_sinh_dd}
+                onChange={(e) => update('ngay_sinh_dd', e.target.value)}
+                className="mt-1 rounded-xl border-rose-200 focus:border-rose-400 focus:ring-rose-200"
+              />
+            </div>
 
-          <div>
-            <Label className="text-rose-600 font-semibold text-sm">Giới tính</Label>
-            <Select value={formData.gioi_tinh_dd} onValueChange={(v) => update('gioi_tinh_dd', v)}>
-              <SelectTrigger className="mt-1 rounded-xl border-rose-200 focus:border-rose-400">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Nam">Nam</SelectItem>
-                <SelectItem value="Nữ">Nữ</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+            <div>
+              <Label className="text-rose-600 font-semibold text-sm">Giới tính</Label>
+              <Select value={formData.gioi_tinh_dd} onValueChange={(v) => update('gioi_tinh_dd', v)}>
+                <SelectTrigger className="mt-1 rounded-xl border-rose-200 focus:border-rose-400">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Nam">Nam</SelectItem>
+                  <SelectItem value="Nữ">Nữ</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div>
-            <Label className="text-rose-600 font-semibold text-sm">Số GTTT</Label>
-            <Input
-              value={formData.so_gttt_dd}
-              onChange={(e) => update('so_gttt_dd', e.target.value)}
-              className="mt-1 rounded-xl border-rose-200 focus:border-rose-400 focus:ring-rose-200"
-              placeholder="CCCD/CMND"
-            />
-          </div>
+            <div>
+              <Label className="text-rose-600 font-semibold text-sm">Số GTTT</Label>
+              <Input
+                value={formData.so_gttt_dd}
+                onChange={(e) => update('so_gttt_dd', e.target.value)}
+                className="mt-1 rounded-xl border-rose-200 focus:border-rose-400 focus:ring-rose-200"
+                placeholder="CCCD/CMND"
+              />
+            </div>
 
-          <div>
-            <Label className="text-rose-600 font-semibold text-sm">Ngày cấp</Label>
-            <Input
-              type="date"
-              value={formData.ngay_cap_dd}
-              onChange={(e) => update('ngay_cap_dd', e.target.value)}
-              className="mt-1 rounded-xl border-rose-200 focus:border-rose-400 focus:ring-rose-200"
-            />
-          </div>
+            <div>
+              <Label className="text-rose-600 font-semibold text-sm">Ngày cấp</Label>
+              <Input
+                type="date"
+                value={formData.ngay_cap_dd}
+                onChange={(e) => update('ngay_cap_dd', e.target.value)}
+                className="mt-1 rounded-xl border-rose-200 focus:border-rose-400 focus:ring-rose-200"
+              />
+            </div>
 
-          <div>
-            <Label className="text-rose-600 font-semibold text-sm">Nơi cấp</Label>
-            <Input
-              value={formData.noi_cap_dd}
-              onChange={(e) => update('noi_cap_dd', e.target.value)}
-              className="mt-1 rounded-xl border-rose-200 focus:border-rose-400 focus:ring-rose-200"
-              placeholder="Nơi cấp GTTT"
-            />
-          </div>
+            <div>
+              <Label className="text-rose-600 font-semibold text-sm">Nơi cấp</Label>
+              <Input
+                value={formData.noi_cap_dd}
+                onChange={(e) => update('noi_cap_dd', e.target.value)}
+                className="mt-1 rounded-xl border-rose-200 focus:border-rose-400 focus:ring-rose-200"
+                placeholder="Nơi cấp GTTT"
+              />
+            </div>
 
-          <div className="sm:col-span-2">
-            <Label className="text-rose-600 font-semibold text-sm">Quan hệ với người được KTSK</Label>
-            <Input
-              value={formData.quan_he}
-              onChange={(e) => update('quan_he', e.target.value)}
-              className="mt-1 rounded-xl border-rose-200 focus:border-rose-400 focus:ring-rose-200"
-              placeholder="Ví dụ: Cha, Mẹ, Người giám hộ..."
-            />
+            <div className="sm:col-span-2">
+              <Label className="text-rose-600 font-semibold text-sm">Quan hệ với người được KTSK</Label>
+              <Input
+                value={formData.quan_he}
+                onChange={(e) => update('quan_he', e.target.value)}
+                className="mt-1 rounded-xl border-rose-200 focus:border-rose-400 focus:ring-rose-200"
+                placeholder="Ví dụ: Cha, Mẹ, Người giám hộ..."
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </Card>
   );
 }
