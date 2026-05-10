@@ -6,8 +6,8 @@ import { join } from 'path';
 
 const PAGE_W = 595.28; // A4
 const PAGE_H = 841.89;
-const M = 40; // margin
-const ML = 50; // left margin (slightly wider like template)
+const M = 40;
+const ML = 50; // left margin
 
 interface DrawCtx {
   doc: PDFDocument;
@@ -17,7 +17,7 @@ interface DrawCtx {
   y: number;
 }
 
-function newPage(doc: PDFDocument, font: PDFFont, boldFont: PDFFont): DrawCtx {
+function newCtx(doc: PDFDocument, font: PDFFont, boldFont: PDFFont): DrawCtx {
   return { doc, page: doc.addPage([PAGE_W, PAGE_H]), font, boldFont, y: PAGE_H - M };
 }
 
@@ -46,38 +46,26 @@ export async function generatePDF(
 
   const { items: examItems, mucKham } = getExamData(selectedK, data.gioi_tinh, data.ngay_sinh);
 
-  // ============ PAGE 1: COVER PAGE ============
-  let ctx = newPage(doc, font, boldFont);
-  ctx.y -= 10;
-
-  // Company header
-  ctx = drawCentered(ctx, 'CÔNG TY: Bảo Việt Nhân thọ An Giang', 11, boldFont);
-  ctx = drawCentered(ctx, 'Địa chỉ: 10 Lê Hồng Phong, Mỹ Bình, Long Xuyên, An Giang', 9, font);
-  ctx = drawCentered(ctx, 'Điện thoại: 02963.957.177 - 02963.959.717', 9, font);
-  ctx.y -= 10;
-  drawLine(ctx, ML, ctx.y, PAGE_W - M, ctx.y, 1.5);
-  ctx.y -= 20;
-
-  // Main title box
-  ctx = drawCentered(ctx, 'HỒ SƠ KIỂM TRA SỨC KHỎE', 20, boldFont);
+  // ============ PAGE 1: BÌA TRÁI (Cover left half) ============
+  let ctx = newCtx(doc, font, boldFont);
   ctx.y -= 5;
+
+  // Main title in box
+  ctx = drawCentered(ctx, 'HỒ SƠ KIỂM TRA SỨC KHOẺ', 20, boldFont);
+  ctx.y -= 3;
   ctx = drawCentered(ctx, '(Số GYCBH/HĐBH: ……………………)', 11, font);
-  ctx.y -= 5;
+  ctx.y -= 3;
 
-  // Red/white highlight for "CÓ CÁN BỘ GIÁM SÁT"
+  // Red background for "CÓ CÁN BỘ GIÁM SÁT"
   ctx.page.drawRectangle({
-    x: ML + 50,
-    y: ctx.y - 4,
-    width: PAGE_W - ML - M - 100,
-    height: 18,
+    x: ML + 50, y: ctx.y - 4, width: PAGE_W - ML - M - 100, height: 20,
     color: rgb(0.85, 0.1, 0.1),
   });
   ctx = drawCentered(ctx, 'CÓ CÁN BỘ GIÁM SÁT', 12, boldFont, rgb(1, 1, 1));
   ctx.y -= 15;
 
-  // Person info on cover
   ctx = drawText(ctx, 'NGƯỜI ĐƯỢC KIỂM TRA SỨC KHỎE:', 11, boldFont);
-  ctx.y -= 5;
+  ctx.y -= 3;
   ctx = drawField(ctx, 'Họ và tên:', data.ho_ten, 120);
   ctx = drawFieldInline(ctx, [
     { label: 'Ngày/tháng/năm sinh:', value: formatDate(data.ngay_sinh), width: 200 },
@@ -89,50 +77,82 @@ export async function generatePDF(
   ]);
   ctx.y -= 15;
 
-  // CƠ SỞ Y TẾ THỰC HIỆN section
   ctx = drawText(ctx, 'CƠ SỞ Y TẾ THỰC HIỆN:', 11, boldFont);
-  ctx.y -= 5;
+  ctx.y -= 3;
   ctx = drawField(ctx, 'Tên cơ sở:', '', 100);
   ctx = drawDottedLine(ctx);
   ctx = drawField(ctx, 'Địa chỉ:', '', 80);
   ctx = drawDottedLine(ctx);
   ctx.y -= 10;
 
-  // Year
-  ctx = drawCentered(ctx, 'Năm 2026', 12, boldFont);
-  ctx.y -= 30;
+  ctx = drawCentered(ctx, 'Năm 2026', 13, boldFont);
 
-  // Image placeholder area (logo area)
-  const imgBoxX = ML + 60;
-  const imgBoxY = ctx.y - 120;
-  const imgBoxW = PAGE_W - ML - M - 120;
-  const imgBoxH = 130;
+  // Image placeholder box
+  ctx.y -= 15;
+  const imgY = ctx.y - 140;
   ctx.page.drawRectangle({
-    x: imgBoxX, y: imgBoxY, width: imgBoxW, height: imgBoxH,
-    borderColor: rgb(0.8, 0.8, 0.8), borderWidth: 1,
+    x: ML + 60, y: imgY, width: PAGE_W - ML - M - 120, height: 150,
+    borderColor: rgb(0.75, 0.75, 0.75), borderWidth: 1,
   });
   ctx.page.drawText('(Logo / Hình ảnh)', {
-    x: imgBoxX + imgBoxW / 2 - 60, y: imgBoxY + imgBoxH / 2 - 5,
+    x: ML + 60 + (PAGE_W - ML - M - 120) / 2 - 60, y: imgY + 70,
     size: 10, font, color: rgb(0.7, 0.7, 0.7),
   });
-  ctx.y = imgBoxY - 20;
+  ctx.y = imgY - 15;
 
-  // Duplicate info at bottom (like template)
+  // Bottom duplicate info
   drawLine(ctx, ML, ctx.y, PAGE_W - M, ctx.y, 0.5);
-  ctx.y -= 15;
+  ctx.y -= 12;
   ctx = drawCentered(ctx, 'CÔNG TY: Bảo Việt Nhân thọ An Giang', 9, boldFont);
   ctx = drawCentered(ctx, 'Địa chỉ: 10 Lê Hồng Phong, Mỹ Bình, Long Xuyên, An Giang', 8, font);
   ctx = drawCentered(ctx, 'Điện thoại: 02963.957.177 - 02963.959.717', 8, font);
 
-  // ============ PAGE 2: REQUEST FORM ============
-  ctx = newPage(doc, font, boldFont);
+  // ============ PAGE 2: BÌA PHẢI + GIẤY YÊU CẦU ============
+  ctx = newCtx(doc, font, boldFont);
   ctx.y -= 5;
 
+  // Top duplicate of cover right side
+  ctx = drawCentered(ctx, 'HỒ SƠ KIỂM TRA SỨC KHOẺ', 20, boldFont);
+  ctx.y -= 3;
+  ctx = drawCentered(ctx, '(Số GYCBH/HĐBH: ……………………)', 11, font);
+  ctx.y -= 3;
+  ctx.page.drawRectangle({
+    x: ML + 50, y: ctx.y - 4, width: PAGE_W - ML - M - 100, height: 20,
+    color: rgb(0.85, 0.1, 0.1),
+  });
+  ctx = drawCentered(ctx, 'CÓ CÁN BỘ GIÁM SÁT', 12, boldFont, rgb(1, 1, 1));
+  ctx.y -= 15;
+
+  ctx = drawText(ctx, 'NGƯỜI ĐƯỢC KIỂM TRA SỨC KHỎE:', 11, boldFont);
+  ctx.y -= 3;
+  ctx = drawField(ctx, 'Họ và tên:', data.ho_ten, 120);
+  ctx = drawFieldInline(ctx, [
+    { label: 'Ngày/tháng/năm sinh:', value: formatDate(data.ngay_sinh), width: 200 },
+    { label: 'Giới tính:', value: data.gioi_tinh, width: 120 },
+  ]);
+  ctx = drawFieldInline(ctx, [
+    { label: 'SĐT:', value: data.sdt, width: 180 },
+    { label: 'Địa chỉ:', value: data.dia_chi, width: 280 },
+  ]);
+  ctx.y -= 10;
+  ctx = drawText(ctx, 'CƠ SỞ Y TẾ THỰC HIỆN:', 11, boldFont);
+  ctx.y -= 3;
+  ctx = drawField(ctx, 'Tên cơ sở:', '', 100);
+  ctx = drawDottedLine(ctx);
+  ctx = drawField(ctx, 'Địa chỉ:', '', 80);
+  ctx = drawDottedLine(ctx);
+
+  // Separator line then page break
+  ctx.y -= 5;
+  drawLine(ctx, ML, ctx.y, PAGE_W - M, ctx.y, 1.5);
+  ctx.y -= 5;
+
+  // GIẤY YÊU CẦU - continues on same page
   ctx = drawCentered(ctx, 'GIẤY YÊU CẦU KIỂM TRA SỨC KHỎE', 14, boldFont);
-  ctx.y -= 8;
+  ctx.y -= 6;
 
   ctx = drawWrapped(ctx, 'Cơ sở y tế lưu ý kiểm tra thông tin nhân thân của Người được kiểm tra sức khỏe và Người đại diện theo pháp luật của Người được kiểm tra sức khỏe (nếu Người được kiểm tra sức khỏe dưới 18 tuổi), đảm bảo khám đúng người được Bảo Việt Nhân thọ yêu cầu.', 9, font, ML, PAGE_W - M);
-  ctx.y -= 8;
+  ctx.y -= 6;
 
   // I. Person info
   ctx = drawText(ctx, 'I. NGƯỜI ĐƯỢC KIỂM TRA SỨC KHỎE:', 10, boldFont);
@@ -146,7 +166,7 @@ export async function generatePDF(
     { label: 'Ngày cấp:', value: formatDate(data.ngay_cap), width: 120 },
   ]);
   ctx = drawField(ctx, 'Nơi cấp:', data.noi_cap, 100);
-  ctx.y -= 6;
+  ctx.y -= 4;
 
   // II. Representative
   ctx = drawText(ctx, 'II. NGƯỜI ĐẠI DIỆN THEO PHÁP LUẬT (2)', 10, boldFont);
@@ -162,18 +182,18 @@ export async function generatePDF(
   ]);
   ctx = drawField(ctx, 'Nơi cấp:', data.noi_cap_dd, 100);
   ctx = drawField(ctx, '4. Quan hệ với Người được KTSK:', data.quan_he, 280);
-  ctx.y -= 6;
+  ctx.y -= 4;
 
   // III. Exam content
   ctx = drawText(ctx, 'III. NỘI DUNG YÊU CẦU KIỂM TRA:', 10, boldFont);
   ctx = drawWrapped(ctx, 'Ghi nhận thông tin về tiền sử liên quan đến Người được yêu cầu kiểm tra sức khỏe. Thực hiện kiểm tra theo các nội dung đánh dấu "X" trong cột yêu cầu dưới đây.', 9, font, ML, PAGE_W - M);
-  ctx.y -= 3;
+  ctx.y -= 2;
   ctx = drawText(ctx, `Mức khám: ${mucKham}`, 10, boldFont);
-  ctx.y -= 6;
+  ctx.y -= 4;
 
   // Exam items table
   ctx = drawExamTable(ctx, examItems);
-  ctx.y -= 6;
+  ctx.y -= 4;
 
   // Notes
   ctx = drawText(ctx, '(*) Lưu ý:', 9, boldFont);
@@ -188,24 +208,24 @@ export async function generatePDF(
     ctx = ensureSpace(ctx, 14);
     ctx = drawText(ctx, note, 8, font);
   }
-  ctx.y -= 3;
+  ctx.y -= 2;
   ctx = drawField(ctx, 'Nội dung cần kiểm tra bổ sung:', data.ghi_chu, 260);
-  ctx.y -= 10;
+  ctx.y -= 8;
 
   // Signature
-  ctx = ensureSpace(ctx, 60);
+  ctx = ensureSpace(ctx, 55);
   ctx = drawCentered(ctx, 'An Giang, ngày ... tháng ... năm ......', 10, font);
-  ctx.y -= 15;
+  ctx.y -= 12;
   ctx = drawCentered(ctx, 'Người lập', 10, boldFont);
-  ctx.y -= 5;
+  ctx.y -= 4;
   ctx = drawCentered(ctx, 'Huỳnh Ngọc Phương Thy', 10, font);
 
-  // ============ PAGE 3: RESULTS - QUESTIONS ============
-  ctx = newPage(doc, font, boldFont);
+  // ============ PAGE 3: KẾT QUẢ - CÂU HỎI TIỀN SỬ ============
+  ctx = newCtx(doc, font, boldFont);
   ctx.y -= 5;
 
   ctx = drawCentered(ctx, 'KẾT QUẢ VÀ KẾT LUẬN KIỂM TRA SỨC KHỎE', 14, boldFont);
-  ctx.y -= 10;
+  ctx.y -= 8;
 
   ctx = drawText(ctx, 'I. TIỀN SỬ LIÊN QUAN ĐẾN NGƯỜI ĐƯỢC KIỂM TRA SỨC KHỎE:', 10, boldFont);
   ctx = drawWrapped(ctx, 'Người được kiểm tra sức khỏe hoặc Người đại diện theo pháp luật (2) (nếu Người được kiểm tra sức khỏe dưới 18 tuổi) cung cấp thông tin về Người được kiểm tra sức khỏe theo các câu hỏi dưới đây.', 9, font, ML, PAGE_W - M);
@@ -213,7 +233,7 @@ export async function generatePDF(
   ctx = drawWrapped(ctx, '(Đánh dấu "X" vào cột trả lời "Không" hoặc "Có" và ghi nhận thông tin chi tiết nếu trả lời "Có")', 8, font, ML, PAGE_W - M);
   ctx.y -= 4;
 
-  const qColW = [25, 270, 40, 40, 90];
+  const qColW = [25, 265, 38, 38, 100];
   drawTableRow(ctx, ['TT', 'Câu hỏi', 'Không', 'Có', 'Thông tin chi tiết'], qColW, 8, boldFont, true);
   drawLine(ctx, ML, ctx.y, PAGE_W - M, ctx.y, 0.5);
 
@@ -228,31 +248,18 @@ export async function generatePDF(
     'Đã từng làm xét nghiệm về bệnh lậu, giang mai, HIV/AIDS chưa? Nếu có, xin cho biết loại xét nghiệm và kết quả?',
     'Có dị tật/khuyết tật/bệnh bẩm sinh không? Xin cho biết tên bệnh/dị tật/khuyết tật?',
     'Đã bao giờ bị tai nạn chưa? Nếu có, xin cho biết thời gian xảy ra tai nạn? Cơ quan bị tổn thương, phương pháp điều trị, hậu quả và di chứng?',
-  ];
-
-  for (let i = 0; i < questions.length; i++) {
-    ctx = ensureSpace(ctx, 28);
-    drawTableRow(ctx, [String(i + 1), questions[i], '', '', ''], qColW, 7.5, font, false);
-    drawLine(ctx, ML, ctx.y, PAGE_W - M, ctx.y, 0.3);
-  }
-
-  // ============ PAGE 4: MORE QUESTIONS + COMMITMENT + PHYSICAL EXAM START ============
-  ctx = newPage(doc, font, boldFont);
-  ctx.y -= 5;
-
-  // Continue questions 11-12
-  const moreQuestions = [
     'Đã từng phát hiện/điều trị bất kỳ bệnh lý nào chưa? Nếu có, xin cho biết tên bệnh? Thời gian phát hiện/điều trị? Phương pháp điều trị?',
     'Có ai trong gia đình bị mắc bệnh hay chết do bệnh: Tim mạch, đái tháo đường, lao, viêm gan, ung thư, rối loạn tâm thần, động kinh, các bệnh di truyền, bệnh liên quan đến HIV/AIDS không?',
   ];
 
-  for (let i = 0; i < moreQuestions.length; i++) {
-    ctx = ensureSpace(ctx, 28);
-    drawTableRow(ctx, [String(11 + i), moreQuestions[i], '', '', ''], qColW, 7.5, font, false);
+  for (let i = 0; i < questions.length; i++) {
+    ctx = ensureSpace(ctx, 25);
+    drawTableRow(ctx, [String(i + 1), questions[i], '', '', ''], qColW, 7, font, false);
     drawLine(ctx, ML, ctx.y, PAGE_W - M, ctx.y, 0.3);
   }
 
-  ctx.y -= 4;
+  // Child questions
+  ctx.y -= 3;
   ctx = drawText(ctx, 'Phần câu hỏi bổ sung khi Người được KTSK là trẻ em (dưới 16 tuổi):', 9, boldFont);
   ctx.y -= 2;
   const childQ = [
@@ -260,14 +267,13 @@ export async function generatePDF(
     'Trẻ đã từng có bất kỳ biểu hiện nào của sự chậm phát triển về tâm thần/vận động, chậm nói, tự kỷ, tăng động/giảm chú ý không? Nếu có, xin cho biết biểu hiện cụ thể?',
   ];
   for (let i = 0; i < childQ.length; i++) {
-    ctx = ensureSpace(ctx, 28);
-    drawTableRow(ctx, [String(13 + i), childQ[i], '', '', ''], qColW, 7.5, font, false);
+    ctx = ensureSpace(ctx, 25);
+    drawTableRow(ctx, [String(13 + i), childQ[i], '', '', ''], qColW, 7, font, false);
     drawLine(ctx, ML, ctx.y, PAGE_W - M, ctx.y, 0.3);
   }
 
-  ctx.y -= 8;
-
   // Commitment
+  ctx.y -= 6;
   ctx = drawText(ctx, '* Tôi cam kết:', 9, boldFont);
   const commits = [
     'Thông tin Tôi đã cung cấp cho Cơ sở y tế theo yêu cầu của Bảo Việt Nhân thọ là đầy đủ và đúng sự thật.',
@@ -275,23 +281,23 @@ export async function generatePDF(
     'Đồng ý khấu trừ chi phí kiểm tra sức khỏe trong trường hợp hồ sơ yêu cầu bảo hiểm chấm dứt hiệu lực do yêu cầu của Tôi hoặc do sự chậm trễ của Tôi trong việc bổ sung thông tin và trong hồ sơ khôi phục/thay đổi điều kiện bảo hiểm. Các thông tin này được coi là thông tin bổ sung cho GYCBH liên quan.',
   ];
   for (const c of commits) {
-    ctx = ensureSpace(ctx, 20);
+    ctx = ensureSpace(ctx, 18);
     ctx = drawWrapped(ctx, '- ' + c, 8, font, ML + 10, PAGE_W - M);
   }
-  ctx.y -= 6;
-  ctx = ensureSpace(ctx, 40);
+  ctx.y -= 4;
+  ctx = ensureSpace(ctx, 35);
   ctx = drawCentered(ctx, 'Ngày ............ tháng ............ năm ..................', 9, font);
-  ctx.y -= 14;
-  ctx = drawCentered(ctx, 'Người được KTSK hoặc Người đại diện theo pháp luật (2)', 9, boldFont);
-  ctx.y -= 6;
+  ctx.y -= 12;
+  ctx = drawCentered(ctx, 'Người được kiểm tra sức khỏe hoặc Người đại diện theo pháp luật (2)', 9, boldFont);
+  ctx.y -= 5;
   ctx = drawCentered(ctx, '(Ký và ghi rõ họ tên)', 8, font);
 
-  // ============ PAGE 5: PHYSICAL EXAM ============
-  ctx = newPage(doc, font, boldFont);
+  // ============ PAGE 4: KHÁM THỂ LỰC + LÂM SÀNG (part 1) ============
+  ctx = newCtx(doc, font, boldFont);
   ctx.y -= 5;
 
-  ctx = drawText(ctx, 'II. KHÁM THỂ LỰC:', 11, boldFont);
-  ctx.y -= 6;
+  ctx = drawText(ctx, 'II. KHÁM THỂ LỰC', 11, boldFont);
+  ctx.y -= 4;
   const physicalItems = [
     '1. Chiều cao: ............... cm;',
     '2. Cân nặng: ............... kg;',
@@ -308,10 +314,11 @@ export async function generatePDF(
   ctx = drawText(ctx, 'Huyết áp lần 3: ........ / ........ mmHg', 9, font);
   ctx.y -= 8;
 
-  ctx = drawText(ctx, 'III. KHÁM LÂM SÀNG:', 11, boldFont);
+  ctx = drawText(ctx, 'III. KHÁM LÂM SÀNG', 11, boldFont);
   ctx = drawWrapped(ctx, '(Bác sỹ khám và ghi nhận đầy đủ các bất thường về sức khỏe của người được kiểm tra sức khỏe)', 8, font, ML, PAGE_W - M);
   ctx.y -= 4;
 
+  // Clinical sections with 3 lines of dots each (like template)
   const clinicalSections = [
     'Tim mạch:',
     'Hô hấp:',
@@ -322,65 +329,106 @@ export async function generatePDF(
     'Tâm thần:',
     'Nội tiết:',
     'Da liễu:',
-    'Mắt:',
-    'Tai mũi họng:',
-    'Sản phụ khoa:',
-    'Các bộ phận khác:',
   ];
   for (const section of clinicalSections) {
-    ctx = ensureSpace(ctx, 35);
+    ctx = ensureSpace(ctx, 55);
     ctx = drawText(ctx, section, 9, boldFont);
-    // Draw 2 dotted lines for writing
+    // 3 dotted lines for writing (matching template)
+    for (let i = 0; i < 3; i++) {
+      drawLine(ctx, ML + 10, ctx.y - 2, PAGE_W - M, ctx.y - 2, 0.3, [2, 2]);
+      ctx.y -= 10;
+    }
+    ctx.y -= 2;
+  }
+
+  // ============ PAGE 5: LÂM SÀNG (tiếp) + KẾT LUẬN ============
+  ctx = newCtx(doc, font, boldFont);
+  ctx.y -= 5;
+
+  // Mắt section with vision test detail
+  ctx = drawText(ctx, 'Mắt:', 9, boldFont);
+  ctx.y -= 2;
+  ctx = drawText(ctx, 'Kết quả khám thị lực:', 9, font);
+  ctx = drawFieldInline(ctx, [
+    { label: 'Không kính: Mắt phải', value: '.............', width: 200 },
+    { label: 'Mắt trái:', value: '.............', width: 160 },
+  ]);
+  ctx = drawFieldInline(ctx, [
+    { label: 'Có kính:    Mắt phải', value: '.............', width: 200 },
+    { label: 'Mắt trái:', value: '.............', width: 160 },
+  ]);
+  ctx = drawField(ctx, 'Các bệnh lý về mắt (nếu có):', '', 220);
+  drawLine(ctx, ML + 10, ctx.y, PAGE_W - M, ctx.y, 0.3, [2, 2]);
+  ctx.y -= 10;
+  drawLine(ctx, ML + 10, ctx.y, PAGE_W - M, ctx.y, 0.3, [2, 2]);
+  ctx.y -= 12;
+
+  // Tai mũi họng
+  ctx = drawText(ctx, 'Tai mũi họng:', 9, boldFont);
+  for (let i = 0; i < 3; i++) {
     drawLine(ctx, ML + 10, ctx.y - 2, PAGE_W - M, ctx.y - 2, 0.3, [2, 2]);
-    ctx.y -= 14;
+    ctx.y -= 10;
+  }
+  ctx.y -= 4;
+
+  // Sản phụ khoa
+  ctx = drawText(ctx, 'Sản phụ khoa:', 9, boldFont);
+  for (let i = 0; i < 3; i++) {
     drawLine(ctx, ML + 10, ctx.y - 2, PAGE_W - M, ctx.y - 2, 0.3, [2, 2]);
+    ctx.y -= 10;
+  }
+  ctx.y -= 4;
+
+  // Các bộ phận khác
+  ctx = drawText(ctx, 'Các bộ phận khác: (Răng hàm mặt, Truyền nhiễm, Sinh dục, ...)', 9, boldFont);
+  for (let i = 0; i < 3; i++) {
+    drawLine(ctx, ML + 10, ctx.y - 2, PAGE_W - M, ctx.y - 2, 0.3, [2, 2]);
+    ctx.y -= 10;
+  }
+  ctx.y -= 8;
+
+  // IV. Kết quả xét nghiệm
+  ctx = drawText(ctx, 'IV. KẾT QUẢ XÉT NGHIỆM VÀ CÁC KỸ THUẬT CHẨN ĐOÁN KHÁC', 10, boldFont);
+  ctx.y -= 4;
+  for (let i = 0; i < 7; i++) {
+    drawLine(ctx, ML, ctx.y, PAGE_W - M, ctx.y, 0.3, [2, 2]);
     ctx.y -= 12;
   }
-
   ctx.y -= 6;
 
-  // IV. Lab results
-  ctx = ensureSpace(ctx, 80);
-  ctx = drawText(ctx, 'IV. KẾT QUẢ XÉT NGHIỆM VÀ CÁC KỸ THUẬT CHẨN ĐOÁN KHÁC:', 10, boldFont);
-  ctx.y -= 6;
-  for (let i = 0; i < 6; i++) {
-    drawLine(ctx, ML, ctx.y, PAGE_W - M, ctx.y, 0.3, [2, 2]);
-    ctx.y -= 18;
-  }
-
-  ctx.y -= 6;
-  ctx = ensureSpace(ctx, 80);
-  ctx = drawText(ctx, 'V. KẾT LUẬN:', 10, boldFont);
-  ctx.y -= 6;
+  // V. Kết luận
+  ctx = drawText(ctx, 'V. KẾT LUẬN', 10, boldFont);
+  ctx.y -= 4;
   for (let i = 0; i < 5; i++) {
     drawLine(ctx, ML, ctx.y, PAGE_W - M, ctx.y, 0.3, [2, 2]);
-    ctx.y -= 18;
+    ctx.y -= 12;
   }
+  ctx.y -= 6;
 
-  ctx = ensureSpace(ctx, 30);
+  // VI. Tổng chi phí
   ctx = drawText(ctx, 'VI. TỔNG CHI PHÍ KIỂM TRA SỨC KHỎE: ...............................................', 10, boldFont);
-  ctx.y -= 20;
+  ctx.y -= 15;
 
   // Signatures
-  ctx = ensureSpace(ctx, 80);
+  ctx = ensureSpace(ctx, 70);
   const signY = ctx.y;
-  ctx.page.drawText('Ngày ...... tháng ...... năm ......', { x: ML, y: signY, size: 9, font });
-  ctx.page.drawText('Nhân viên giám sát', { x: ML + 20, y: signY - 14, size: 9, font: boldFont });
-  ctx.page.drawText('(Ký và ghi rõ họ tên, vị trí công việc)', { x: ML, y: signY - 26, size: 8, font });
+  ctx.page.drawText('Ngày.......tháng........năm ...........', { x: ML, y: signY, size: 9, font });
+  ctx.page.drawText('Xác nhận của nhân viên giám sát', { x: ML + 10, y: signY - 14, size: 9, font: boldFont });
+  ctx.page.drawText('(Ký và ghi rõ họ tên, vị trí công việc)', { x: ML + 5, y: signY - 26, size: 8, font });
 
-  ctx.page.drawText('Ngày ...... tháng ...... năm ......', { x: PAGE_W - M - 180, y: signY, size: 9, font });
-  ctx.page.drawText('Cơ sở y tế', { x: PAGE_W - M - 130, y: signY - 14, size: 9, font: boldFont });
-  ctx.page.drawText('(Ký, ghi rõ họ tên và đóng dấu)', { x: PAGE_W - M - 190, y: signY - 26, size: 8, font });
+  ctx.page.drawText('Ngày.......tháng........năm ...........', { x: PAGE_W - M - 200, y: signY, size: 9, font });
+  ctx.page.drawText('Xác nhận của Cơ sở y tế', { x: PAGE_W - M - 160, y: signY - 14, size: 9, font: boldFont });
+  ctx.page.drawText('(Ký, ghi rõ họ tên và đóng dấu)', { x: PAGE_W - M - 195, y: signY - 26, size: 8, font });
 
-  ctx.y = signY - 50;
+  ctx.y = signY - 45;
 
   // Footnote
   ctx = ensureSpace(ctx, 40);
   drawLine(ctx, ML, ctx.y, PAGE_W - M, ctx.y, 0.5);
   ctx.y -= 10;
-  ctx = drawWrapped(ctx, '(1) Số giấy tờ tùy thân: Mã định danh cá nhân, số thẻ căn cước công dân, số chứng minh nhân dân, số hộ chiếu, số giấy khai sinh.', 7, font, ML, PAGE_W - M);
+  ctx = drawWrapped(ctx, 'Ghi chú: Số giấy tờ tùy thân: Mã định danh cá nhân, số thẻ căn cước công dân, số chứng minh nhân dân, số hộ chiếu, số giấy khai sinh.', 7, font, ML, PAGE_W - M);
   ctx.y -= 2;
-  ctx = drawWrapped(ctx, '(2) Người đại diện theo pháp luật của Người được KTSK: là Cha, Mẹ hoặc Người giám hộ của Người được KTSK.', 7, font, ML, PAGE_W - M);
+  ctx = drawWrapped(ctx, 'Người đại diện theo pháp luật của Người được kiểm tra sức khỏe (gọi tắt là Người đại diện theo pháp luật): là Cha, Mẹ hoặc Người giám hộ của Người được kiểm tra sức khỏe.', 7, font, ML, PAGE_W - M);
 
   // ============ Merge attached PDFs ============
   for (const pdfBuf of attachedPdfBuffers) {
@@ -499,10 +547,8 @@ function drawDottedLine(ctx: DrawCtx): DrawCtx {
 
 function drawLine(
   ctx: DrawCtx,
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number,
+  x1: number, y1: number,
+  x2: number, y2: number,
   thickness: number,
   dash?: number[]
 ) {
@@ -548,10 +594,10 @@ function drawExamTable(ctx: DrawCtx, examItems: Set<string>): DrawCtx {
   const headerY = ctx.y;
   ctx.page.drawText('TT', { x: ML + 3, y: headerY - 10, size: 9, font: ctx.boldFont });
   ctx.page.drawText('Nội dung khám, xét nghiệm', { x: ML + colW[0] + 3, y: headerY - 10, size: 9, font: ctx.boldFont });
-  ctx.page.drawText('Y/C', { x: ML + colW[0] + colW[1] + 15, y: headerY - 10, size: 9, font: ctx.boldFont });
+  ctx.page.drawText('Yêu cầu', { x: ML + colW[0] + colW[1] + 8, y: headerY - 10, size: 9, font: ctx.boldFont });
   ctx.page.drawText('TT', { x: ML + colW[0] + colW[1] + colW[2] + 3, y: headerY - 10, size: 9, font: ctx.boldFont });
   ctx.page.drawText('Nội dung khám, xét nghiệm', { x: ML + colW[0] + colW[1] + colW[2] + colW[3] + 3, y: headerY - 10, size: 9, font: ctx.boldFont });
-  ctx.page.drawText('Y/C', { x: ML + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + 15, y: headerY - 10, size: 9, font: ctx.boldFont });
+  ctx.page.drawText('Yêu cầu', { x: ML + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] + 8, y: headerY - 10, size: 9, font: ctx.boldFont });
 
   ctx.y = headerY - 18;
   drawLine(ctx, ML, ctx.y, PAGE_W - M, ctx.y, 0.5);
