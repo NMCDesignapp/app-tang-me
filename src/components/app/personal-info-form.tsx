@@ -12,8 +12,192 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
-import { User, Users, ChevronDown, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import { User, Users, ChevronDown, ChevronRight, CalendarIcon, X } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+
+// Nơi cấp options
+const NOI_CAP_OPTIONS = [
+  { value: 'Bộ Công An', label: 'Bộ Công An' },
+  { value: 'CCSQLHCVTTXH', label: 'CCSQLHCVTTXH' },
+];
+
+// Compact date picker with direct input
+function DatePickerField({
+  value,
+  onChange,
+  className,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  className?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [viewDate, setViewDate] = useState(() => {
+    if (value) {
+      const d = new Date(value);
+      return isNaN(d.getTime()) ? new Date() : d;
+    }
+    return new Date();
+  });
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Parse value to display string (dd/mm/yyyy)
+  const displayValue = value
+    ? (() => {
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return value;
+        return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+      })()
+    : '';
+
+  // Handle direct text input
+  const [inputText, setInputText] = useState(displayValue);
+  useEffect(() => {
+    setInputText(displayValue);
+  }, [value]);
+
+  const handleInputChange = (text: string) => {
+    setInputText(text);
+    // Try to parse dd/mm/yyyy
+    const match = text.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (match) {
+      const day = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10) - 1;
+      const year = parseInt(match[3], 10);
+      if (year >= 1900 && month >= 0 && month <= 11 && day >= 1 && day <= 31) {
+        const d = new Date(year, month, day);
+        const isoStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+        onChange(isoStr);
+      }
+    }
+  };
+
+  const handleDayClick = (year: number, month: number, day: number) => {
+    const isoStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    onChange(isoStr);
+    setIsOpen(false);
+  };
+
+  // Calendar navigation
+  const prevMonth = () => {
+    setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
+  };
+  const nextMonth = () => {
+    setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
+  };
+
+  // Close on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClick);
+    }
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [isOpen]);
+
+  // Generate calendar days
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+  const selectedDate = value ? new Date(value) : null;
+
+  const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+  const monthNames = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
+
+  const calendarDays: (number | null)[] = [];
+  for (let i = 0; i < firstDay; i++) calendarDays.push(null);
+  for (let i = 1; i <= daysInMonth; i++) calendarDays.push(i);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div className="flex gap-1.5">
+        <Input
+          value={inputText}
+          onChange={(e) => handleInputChange(e.target.value)}
+          placeholder="dd/mm/yyyy"
+          className={`rounded-xl border-rose-200 focus:border-rose-400 focus:ring-rose-200 ${className || ''}`}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="shrink-0 rounded-xl border-rose-200 hover:bg-rose-50 hover:border-rose-300 h-9 w-9"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <CalendarIcon className="h-4 w-4 text-rose-500" />
+        </Button>
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-50 top-full mt-1 left-0 bg-white rounded-2xl shadow-xl border border-rose-100 p-3 w-[260px] animate-in fade-in-0 zoom-in-95">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-2">
+            <button
+              type="button"
+              onClick={prevMonth}
+              className="h-7 w-7 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition-colors"
+            >
+              <ChevronRight className="h-4 w-4 rotate-180" />
+            </button>
+            <span className="text-sm font-semibold text-rose-700">
+              {monthNames[month]} {year}
+            </span>
+            <button
+              type="button"
+              onClick={nextMonth}
+              className="h-7 w-7 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition-colors"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Day names */}
+          <div className="grid grid-cols-7 gap-0 mb-1">
+            {dayNames.map((d) => (
+              <div key={d} className="text-center text-[10px] font-medium text-rose-300 py-1">
+                {d}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7 gap-0">
+            {calendarDays.map((day, idx) => {
+              if (day === null) {
+                return <div key={`empty-${idx}`} className="h-7" />;
+              }
+              const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+              const isSelected = selectedDate && day === selectedDate.getDate() && month === selectedDate.getMonth() && year === selectedDate.getFullYear();
+
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => handleDayClick(year, month, day)}
+                  className={`
+                    h-7 w-full text-xs rounded-lg flex items-center justify-center transition-colors
+                    ${isSelected ? 'bg-rose-500 text-white font-bold shadow-sm' : ''}
+                    ${isToday && !isSelected ? 'bg-rose-100 text-rose-600 font-semibold' : ''}
+                    ${!isSelected && !isToday ? 'hover:bg-rose-50 text-rose-700' : ''}
+                  `}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function PersonalInfoForm() {
   const { formData, setFormData } = useAppStore();
@@ -46,12 +230,12 @@ export function PersonalInfoForm() {
 
           <div>
             <Label className="text-rose-600 font-semibold text-sm">Ngày sinh</Label>
-            <Input
-              type="date"
-              value={formData.ngay_sinh}
-              onChange={(e) => update('ngay_sinh', e.target.value)}
-              className="mt-1 rounded-xl border-rose-200 focus:border-rose-400 focus:ring-rose-200"
-            />
+            <div className="mt-1">
+              <DatePickerField
+                value={formData.ngay_sinh}
+                onChange={(v) => update('ngay_sinh', v)}
+              />
+            </div>
           </div>
 
           <div>
@@ -60,7 +244,7 @@ export function PersonalInfoForm() {
               <SelectTrigger className="mt-1 rounded-xl border-rose-200 focus:border-rose-400">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-xl">
                 <SelectItem value="Nam">Nam</SelectItem>
                 <SelectItem value="Nữ">Nữ</SelectItem>
               </SelectContent>
@@ -79,22 +263,26 @@ export function PersonalInfoForm() {
 
           <div>
             <Label className="text-rose-600 font-semibold text-sm">Ngày cấp</Label>
-            <Input
-              type="date"
-              value={formData.ngay_cap}
-              onChange={(e) => update('ngay_cap', e.target.value)}
-              className="mt-1 rounded-xl border-rose-200 focus:border-rose-400 focus:ring-rose-200"
-            />
+            <div className="mt-1">
+              <DatePickerField
+                value={formData.ngay_cap}
+                onChange={(v) => update('ngay_cap', v)}
+              />
+            </div>
           </div>
 
           <div>
             <Label className="text-rose-600 font-semibold text-sm">Nơi cấp</Label>
-            <Input
-              value={formData.noi_cap}
-              onChange={(e) => update('noi_cap', e.target.value)}
-              className="mt-1 rounded-xl border-rose-200 focus:border-rose-400 focus:ring-rose-200"
-              placeholder="Nơi cấp GTTT"
-            />
+            <Select value={formData.noi_cap} onValueChange={(v) => update('noi_cap', v)}>
+              <SelectTrigger className="mt-1 rounded-xl border-rose-200 focus:border-rose-400">
+                <SelectValue placeholder="Chọn nơi cấp" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                {NOI_CAP_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -164,12 +352,12 @@ export function PersonalInfoForm() {
 
             <div>
               <Label className="text-rose-600 font-semibold text-sm">Ngày sinh</Label>
-              <Input
-                type="date"
-                value={formData.ngay_sinh_dd}
-                onChange={(e) => update('ngay_sinh_dd', e.target.value)}
-                className="mt-1 rounded-xl border-rose-200 focus:border-rose-400 focus:ring-rose-200"
-              />
+              <div className="mt-1">
+                <DatePickerField
+                  value={formData.ngay_sinh_dd}
+                  onChange={(v) => update('ngay_sinh_dd', v)}
+                />
+              </div>
             </div>
 
             <div>
@@ -178,7 +366,7 @@ export function PersonalInfoForm() {
                 <SelectTrigger className="mt-1 rounded-xl border-rose-200 focus:border-rose-400">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-xl">
                   <SelectItem value="Nam">Nam</SelectItem>
                   <SelectItem value="Nữ">Nữ</SelectItem>
                 </SelectContent>
@@ -197,22 +385,26 @@ export function PersonalInfoForm() {
 
             <div>
               <Label className="text-rose-600 font-semibold text-sm">Ngày cấp</Label>
-              <Input
-                type="date"
-                value={formData.ngay_cap_dd}
-                onChange={(e) => update('ngay_cap_dd', e.target.value)}
-                className="mt-1 rounded-xl border-rose-200 focus:border-rose-400 focus:ring-rose-200"
-              />
+              <div className="mt-1">
+                <DatePickerField
+                  value={formData.ngay_cap_dd}
+                  onChange={(v) => update('ngay_cap_dd', v)}
+                />
+              </div>
             </div>
 
             <div>
               <Label className="text-rose-600 font-semibold text-sm">Nơi cấp</Label>
-              <Input
-                value={formData.noi_cap_dd}
-                onChange={(e) => update('noi_cap_dd', e.target.value)}
-                className="mt-1 rounded-xl border-rose-200 focus:border-rose-400 focus:ring-rose-200"
-                placeholder="Nơi cấp GTTT"
-              />
+              <Select value={formData.noi_cap_dd} onValueChange={(v) => update('noi_cap_dd', v)}>
+                <SelectTrigger className="mt-1 rounded-xl border-rose-200 focus:border-rose-400">
+                  <SelectValue placeholder="Chọn nơi cấp" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  {NOI_CAP_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="sm:col-span-2">

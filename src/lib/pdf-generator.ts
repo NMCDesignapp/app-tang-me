@@ -69,11 +69,11 @@ const PAGE2_FIELDS: FieldDef[] = [
   { key: 'ngay_sinh_p2',   x: 185.4, y: 693.0, size: 11, maxW: 53 },
   // After "Giới tính:" x2=293.5
   { key: 'gioi_tinh_p2',   x: 296.5, y: 693.0, size: 12, maxW: 255 },
-  // After ":" at x≈169.2, before "Ngày cấp:" starts at x≈235.5
-  // Size 10 for CCCD numbers (9 digits = 45pt at size 10, fits in 60pt)
-  { key: 'so_gttt',        x: 172.0, y: 676.0, size: 10, maxW: 60 },
-  // After "Ngày cấp:" x2=287.5 — wider spacing for date
-  { key: 'ngay_cap',       x: 290.5, y: 676.0, size: 12, maxW: 260 },
+  // After ":" at x≈172.5, before "Ngày cấp:" starts at x≈235.5
+  // Size 11 so CCCD numbers fit comfortably (9 digits = 49.5pt at size 11, space = 63pt)
+  { key: 'so_gttt',        x: 175.0, y: 676.0, size: 11, maxW: 58 },
+  // After "Ngày cấp:" colon x2≈284.5 — size 13 matching other fields
+  { key: 'ngay_cap',       x: 287.5, y: 676.0, size: 13, maxW: 265 },
   // After "Nơi cấp:" x2=114.4 — wider spacing for place name
   { key: 'noi_cap',        x: 117.4, y: 659.2, size: 12, maxW: 430 },
 
@@ -85,10 +85,10 @@ const PAGE2_FIELDS: FieldDef[] = [
   { key: 'ngay_sinh_dd',   x: 155.3, y: 608.8, size: 11, maxW: 55 },
   // After "Giới tính:" x2=263.8
   { key: 'gioi_tinh_dd',   x: 266.8, y: 608.8, size: 12, maxW: 285 },
-  // After ":" x2=148.5, before "Ngày cấp:" at x=254.6
+  // After ":" x2=148.5, before "Ngày cấp:" at x=254.6 — size 12 fits well (space = 106pt)
   { key: 'so_gttt_dd',     x: 151.5, y: 592.0, size: 12, maxW: 100 },
-  // After "Ngày cấp:" x2=306.5 — wider spacing for date
-  { key: 'ngay_cap_dd',    x: 309.5, y: 592.0, size: 12, maxW: 240 },
+  // After "Ngày cấp:" colon x2≈303.5 — size 13 matching other fields
+  { key: 'ngay_cap_dd',    x: 306.5, y: 592.0, size: 13, maxW: 245 },
   // After "Nơi cấp:" x2=78.4 — wider spacing for place name
   { key: 'noi_cap_dd',     x:  81.4, y: 575.2, size: 12, maxW: 470 },
   // After "4. Quan hệ với Người được kiểm tra sức khỏe:" x2=266.7
