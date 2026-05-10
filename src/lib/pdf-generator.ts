@@ -101,10 +101,10 @@ const PAGE2_FIELDS: FieldDef[] = [
   { key: 'ghi_chu',        x: 191.3, y: 211.1, size: 12, maxW: 360 },
 
   // ---- Dotted lines for handwriting ----
-  // Below "An Giang, ngày … tháng … năm ……" line (y_top≈657)
-  { key: 'dots_angiang',   x: 322.1, y: 174.2, size: 12, maxW: 200 },
-  // Below "Nội dung cần kiểm tra bổ sung:" (y_top≈632)
-  { key: 'dots_bosung',    x: 34.1,  y: 199.2, size: 12, maxW: 520 },
+  // After ":" on same line as "Nội dung cần kiểm tra bổ sung:" (y_top≈620.1)
+  { key: 'dots_bosung',    x: 191.3, y: 211.1, size: 12, maxW: 380 },
+  // Below "Nội dung cần kiểm tra bổ sung:" line (y_top≈637)
+  { key: 'dots_bosung_l2', x: 34.1,  y: 195.1, size: 11, maxW: 540 },
 
   // ---- Exam X marks - Left column (centered at x≈292) ----
   { key: 'kham_1',   x: 288, y: 433.0, size: 12, maxW: 20 },
@@ -186,8 +186,8 @@ export async function generatePDF(
     ghi_chu:  data.ghi_chu,
 
     // Dotted lines (always visible)
-    dots_angiang: '.'.repeat(60),
-    dots_bosung:   '.'.repeat(170),
+    dots_bosung:    '.'.repeat(126),
+    dots_bosung_l2: '.'.repeat(140),
 
     // Exam X marks
     kham_1:   examItems.has('1')   ? 'X' : '',
