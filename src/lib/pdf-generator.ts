@@ -83,8 +83,8 @@ const PAGE2_FIELDS: FieldDef[] = [
   { key: 'gioi_tinh_p2',   x: 365.9, y: 693.0, size: 12, maxW: 200 },
   // After "Số GTTT:" — "Ngày cấp:" on same line but closer → size 9, maxW ~45pt
   { key: 'so_gttt',        x: 178.5, y: 675.0, size:  9, maxW:  45 },
-  // After "Ngày cấp:" on same line as so_gttt
-  { key: 'ngay_cap',       x: 230.0, y: 675.0, size: 11, maxW: 120 },
+  // After "Ngày cấp:" label ends (label at x≈223, width≈65pt, so fill starts at ~291)
+  { key: 'ngay_cap',       x: 291.0, y: 675.0, size: 11, maxW: 300 },
   // After "Nơi cấp:" x2=114.4, y_baseline=184.8
   { key: 'noi_cap',        x: 117.4, y: 657.1, size: 12, maxW: 430 },
 
