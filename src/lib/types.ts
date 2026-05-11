@@ -7,6 +7,7 @@ export interface FormData {
   noi_cap: string;
   sdt: string;
   dia_chi: string;
+  so_giay_yeu_cau: string;
   ghi_chu: string;
   nguoi_dai_dien: string;
   ngay_sinh_dd: string;
@@ -19,9 +20,9 @@ export interface FormData {
 
 export const K_BASE: Record<string, string[]> = {
   K1: ['1', '4_1', '4_2'],
-  K2: ['1', '2', '3', '4_2', '7_1', '7_2', '7_3', '7_4', '8_1'],
-  K3: ['1', '2', '3', '4_1', '4_2', '4_4', '5', '6', '7_1', '7_2', '7_3', '7_4', '8_1'],
-  K4: ['1', '2', '3', '4_1', '4_2', '4_4', '5', '6', '7_1', '7_2', '7_3', '7_4', '7_5', '8_1'],
+  K2: ['1', '2', '3', '4_2', '7_1', '7_2', '7_3', '7_4', '8_1', '8_2'],
+  K3: ['1', '2', '3', '4_1', '4_2', '4_4', '5', '6', '7_1', '7_2', '7_3', '7_4', '8_1', '8_2'],
+  K4: ['1', '2', '3', '4_1', '4_2', '4_4', '5', '6', '7_1', '7_2', '7_3', '7_4', '7_5', '8_1', '8_2'],
 };
 
 export const EXAM_ITEMS = [
@@ -43,6 +44,7 @@ export const EXAM_ITEMS = [
   { id: '7_5', label: '- HbA1c', parent: false },
   { id: '8', label: 'Xét nghiệm viêm gan B:', parent: true },
   { id: '8_1', label: '- HBsAg', parent: false },
+  { id: '8_2', label: '- HBeAg', parent: false },
   { id: '9', label: 'HIV(*)', parent: false },
 ];
 

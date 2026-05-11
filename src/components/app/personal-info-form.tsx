@@ -306,6 +306,16 @@ export function PersonalInfoForm() {
             />
           </div>
 
+          <div>
+            <Label className="text-rose-600 font-semibold text-sm">Số GYCBH/HĐBH</Label>
+            <Input
+              value={formData.so_giay_yeu_cau}
+              onChange={(e) => update('so_giay_yeu_cau', e.target.value)}
+              className="mt-1 rounded-xl border-rose-200 focus:border-rose-400 focus:ring-rose-200"
+              placeholder="Số giấy yêu cầu BH / Hợp đồng BH"
+            />
+          </div>
+
           <div className="sm:col-span-2">
             <Label className="text-rose-600 font-semibold text-sm">Ghi chú / Nội dung kiểm tra bổ sung</Label>
             <Textarea

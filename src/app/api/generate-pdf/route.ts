@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
       noi_cap: (formData.get('noi_cap') as string) || '',
       sdt: (formData.get('sdt') as string) || '',
       dia_chi: (formData.get('dia_chi') as string) || '',
+      so_giay_yeu_cau: (formData.get('so_giay_yeu_cau') as string) || '',
       ghi_chu: (formData.get('ghi_chu') as string) || '',
       nguoi_dai_dien: (formData.get('nguoi_dai_dien') as string) || '',
       ngay_sinh_dd: (formData.get('ngay_sinh_dd') as string) || '',
