@@ -5,18 +5,20 @@ import { join } from 'path';
 /**
  * PDF Generator using pdf-lib + pre-converted blank template PDF.
  *
- * Coordinates derived from template_1.docx (converted 2026-05-11).
- * Analyzed with PyMuPDF — labels and fill positions computed from exact span positions.
+ * Coordinates derived from template_1.pdf (converted from DOCX 2026-05-11).
+ * All positions extracted with PyMuPDF search_for() for exact placeholder bounding boxes.
  *
- * Key findings from new template:
- * - Page 1: so_giay_yeu_cau is inside "(Số GYCBH/HĐBH: ...)" — limited to ~100pt before ")"
- * - Page 2: so_gttt has ~138pt before "Ngày cấp:" (which visually starts at x≈316.4)
- * - Page 2: so_gttt_dd has ~172pt before "Ngày cấp:" (which visually starts at x≈339.2)
- * - Page 2: ghi_chu supports 2 lines after "Nội dung cần kiểm tra bổ sung:"
- * - Right column exam items: kham_8 (viêm gan B), kham_8_1 (HBsAg), kham_8_2 (HBeAg)
+ * Coordinate system:
+ *   PyMuPDF: y increases downward (0 = top)
+ *   pdf-lib: y increases upward (0 = bottom)
+ *   Conversion: pdf_lib_y = PAGE_HEIGHT - pymupdf_y2
+ *   PAGE_HEIGHT = 841.89 (A4)
  *
- * Y formula: pdf_lib_y = PAGE_HEIGHT - y_baseline
- * PAGE_HEIGHT = 841.89 (A4)
+ * Key layout constraints:
+ *   Page 1: so_giay_yeu_cau inside "(Số GYCBH/HĐBH: ...)" — ~100pt before ")"
+ *   Page 2: so_gttt has ~50pt before "Ngày cấp:" (tight — size 9 for max digits)
+ *   Page 2: so_gttt_dd has ~172pt before "Ngày cấp:" (plenty of space)
+ *   Page 2: ghi_chu single line only (line 2 would overlap "An Giang, ngày …")
  */
 
 const PAGE_HEIGHT = 841.89;
@@ -41,104 +43,135 @@ interface FieldDef {
 }
 
 // =============================================================================
-// Page 1 (Cover page) — template_1.docx coordinates
-// "(Số GYCBH/HĐBH:" ends at x=298.5, ")" at x=401.2
-// "Họ và tên:" x1=95.4, "Ngày/tháng/năm sinh:" x1=159.7
-// "Giới tính:" x1=350.9, "SĐT:" x1=69.4, "Địa chỉ:" x1=249.3
+// Page 1 (Cover page) — coordinates from template_1.pdf PyMuPDF search
+// All x/y values from exact placeholder bounding boxes:
+//   {so_giay_yeu_cau} Rect(298.55, 267.72, 401.18, 282.11)
+//   {ho_ten}          Rect(98.67,  330.77, 146.48, 345.16)
+//   {ngay_sinh}       Rect(166.45, 353.98, 237.40, 369.47)
+//   {gioi_tinh}       Rect(354.20, 354.87, 413.57, 369.26)
+//   {sdt}             Rect(72.70,  378.48, 102.45, 393.97)
+//   {dia_chi}         Rect(252.52, 379.37, 303.22, 393.76)
 // =============================================================================
 const PAGE1_FIELDS: FieldDef[] = [
-  // After "(Số GYCBH/HĐBH:" x2=298.5, y_baseline=282.1 — ")" at x=401.2 limits space
-  // Size 11 allows ~16 chars (e.g. "GYCBH/2026/00123") to fit in ~100pt
-  { key: 'so_giay_yeu_cau', x: 300.5, y: 560.7, size: 11, maxW: 100 },
-  // After "Họ và tên:" x1=95.4, y_baseline=345.2
-  { key: 'ho_ten',          x:  98.4, y: 496.7, size: 13, maxW: 460 },
-  // After "Ngày/tháng/năm sinh:" x1=159.7, y_baseline=369.3, before "Giới tính:" at x=300.4
-  { key: 'ngay_sinh',       x: 162.7, y: 472.6, size: 11, maxW: 131 },
-  // After "Giới tính:" x1=350.9, y_baseline=369.3
-  { key: 'gioi_tinh',       x: 353.9, y: 472.6, size: 13, maxW: 240 },
-  // After "SĐT:" x1=69.4, y_baseline=393.8, before "Địa chỉ:" at x=207.8
-  { key: 'sdt',             x:  72.4, y: 448.1, size: 13, maxW: 132 },
-  // After "Địa chỉ:" x1=249.3, y_baseline=393.8
-  { key: 'dia_chi',         x: 252.3, y: 448.1, size: 13, maxW: 340 },
+  // so_giay_yeu_cau: between "(Số GYCBH/HĐBH:" and ")"
+  // x=298.55, y2=282.11 → pdf_y=559.8; maxW before ")" at x≈401.2 → 102pt
+  { key: 'so_giay_yeu_cau', x: 298.5, y: 559.8, size: 11, maxW: 100 },
+  // ho_ten: after "Họ và ten:" label
+  // x=98.67, y2=345.16 → pdf_y=496.7; extends to page right → maxW=460
+  { key: 'ho_ten',          x:  98.7, y: 496.7, size: 13, maxW: 460 },
+  // ngay_sinh: after "Ngày/tháng/năm sinh:", before "Giới tính:" at x≈300.4
+  // x=166.45, y2=369.47 → pdf_y=472.4; maxW=300.4-166.4=134 → 131
+  { key: 'ngay_sinh',       x: 166.4, y: 472.4, size: 11, maxW: 131 },
+  // gioi_tinh: after "Giới tính:" label
+  // x=354.20, y2=369.26 → pdf_y=472.6; extends to page right → maxW=230
+  { key: 'gioi_tinh',       x: 354.2, y: 472.6, size: 13, maxW: 230 },
+  // sdt: after "SĐT:", before "Địa chỉ:" at x≈207.8
+  // x=72.70, y2=393.97 → pdf_y=447.9; maxW=207.8-72.7=135 → 132
+  { key: 'sdt',             x:  72.7, y: 447.9, size: 13, maxW: 132 },
+  // dia_chi: after "Địa chỉ:" label
+  // x=252.52, y2=393.76 → pdf_y=448.1; extends to page right → maxW=340
+  { key: 'dia_chi',         x: 252.5, y: 448.1, size: 13, maxW: 340 },
 ];
 
 // =============================================================================
-// Page 2 (Request form) — template_1.docx coordinates
-// Key positions (from PyMuPDF search):
-//   "Ngày cấp:" visual text starts at x=316.4 (Section I), x=339.2 (Section II)
-//   "Nội dung cần kiểm tra bổ sung:" ends at x=185.3
+// Page 2 (Request form) — coordinates from template_1.pdf PyMuPDF search
+//
+// Section I (NGƯỜI ĐƯỢC KIỂM TRA SỨC KHỎE):
+//   {ho_ten}     Rect(123.05, 119.37, 170.86, 133.76)
+//   {ngay_sinh}  Rect(182.40, 137.32, 248.26, 151.71)
+//   {gioi_tinh}  Rect(362.95, 137.32, 422.32, 151.71)
+//   {so_gttt}    Rect(175.50, 155.27, 223.31, 169.66)
+//   {ngay_cap}   Rect(371.30, 155.27, 433.50, 169.66)
+//   {noi_cap}    Rect(114.40, 173.22, 167.96, 187.61)
+//
+// Section II (NGƯỜI ĐẠI DIỆN):
+//   {nguoi_dai_dien} Rect(111.05, 207.97, 204.35, 222.36)
+//   {ngay_sinh_dd}   Rect(173.30, 225.92, 258.66, 240.31)
+//   {gioi_tinh_dd}   Rect(381.20, 225.92, 460.07, 240.31)
+//   {so_gttt_dd}     Rect(164.95, 243.87, 232.26, 258.26)
+//   {ngay_cap_dd}    Rect(391.15, 243.87, 472.85, 258.26)
+//   {noi_cap_dd}     Rect(111.40, 261.82, 184.48, 276.21)
+//   {quan_he}        Rect(278.90, 282.77, 335.36, 297.16)
+//
+// Section III:
+//   {muc_kham}       Rect(124.70, 360.87, 194.90, 375.26)
+//
+// Ghi chú:
+//   {ghi_chu}        Rect(191.32, 666.06, 241.46, 679.34)
+//   "An Giang, ngày …" at y=695.1 → pdf_y=146.8 (only ~16pt gap below ghi_chu)
+//   → Single line only to avoid overlapping "An Giang"
+//
+// Exam X marks — centered in "Yêu cầu" columns:
+//   Left column center ≈ x=290, Right column center ≈ x=522
+//   Y positions from row text y2 values (baseline of size-12 text)
 // =============================================================================
 const PAGE2_FIELDS: FieldDef[] = [
   // ---- Section I: Person info ----
-  // After "Họ và tên:" x1=120.1, y_baseline=133.5
-  { key: 'ho_ten_p2',      x: 123.1, y: 708.4, size: 12, maxW: 470 },
-  // After "Ngày/tháng/năm sinh:" x1=176.3, y_baseline=151.5, before "Giới tính:" at x=313.3
-  { key: 'ngay_sinh_p2',   x: 179.3, y: 690.4, size: 11, maxW: 126 },
-  // After "Giới tính:" x1=359.9, y_baseline=151.5
-  { key: 'gioi_tinh_p2',   x: 362.9, y: 690.4, size: 12, maxW: 230 },
-  // After ":" x2=175.5, y_baseline=169.4 — "Ngày cấp:" visual at x=316.4 → ~138pt gap!
-  { key: 'so_gttt',        x: 178.5, y: 672.5, size: 12, maxW: 138 },
-  // After "Ngày cấp:" x1=365.3 (search), placeholder starts at x=371.3, y_baseline=169.7
-  { key: 'ngay_cap',       x: 373.3, y: 672.2, size: 11, maxW: 220 },
-  // After "Nơi cấp:" x1=114.4, y_baseline=187.4
-  { key: 'noi_cap',        x: 117.4, y: 654.5, size: 12, maxW: 478 },
+  // ho_ten_p2: x=123.05, y2=133.76 → pdf_y=708.1
+  { key: 'ho_ten_p2',      x: 123.1, y: 708.1, size: 12, maxW: 470 },
+  // ngay_sinh_p2: x=182.40, y2=151.71 → pdf_y=690.2; before "Giới tính:" at x≈313.3
+  { key: 'ngay_sinh_p2',   x: 182.4, y: 690.2, size: 11, maxW: 126 },
+  // gioi_tinh_p2: x=362.95, y2=151.71 → pdf_y=690.2
+  { key: 'gioi_tinh_p2',   x: 363.0, y: 690.2, size: 12, maxW: 230 },
+  // so_gttt: x=175.50, y2=169.66 → pdf_y=672.2
+  // CRITICAL: "Ngày cấp:" starts at x≈226.4 → only ~50pt gap!
+  // Using size 8 to fit all 12 CCCD digits in 50pt
+  { key: 'so_gttt',        x: 175.5, y: 671.0, size: 8,  maxW: 50 },
+  // ngay_cap: x=371.30, y2=169.66 → pdf_y=672.2; after "Ngày cấp:" label
+  { key: 'ngay_cap',       x: 371.3, y: 672.2, size: 11, maxW: 200 },
+  // noi_cap: x=114.40, y2=187.61 → pdf_y=654.3
+  { key: 'noi_cap',        x: 114.4, y: 654.3, size: 12, maxW: 478 },
 
   // ---- Section II: Representative ----
-  // After "1. Họ và tên:" x1=108.1 (search), y_baseline=222.4
-  { key: 'nguoi_dai_dien', x: 113.1, y: 619.5, size: 12, maxW: 482 },
-  // After "2. Ngày/tháng/năm sinh:" x1=164.3, y_baseline=240.3, before "Giới tính:" at x=331.5
-  { key: 'ngay_sinh_dd',   x: 175.3, y: 601.6, size: 11, maxW: 156 },
-  // After "Giới tính:" x1=378.1, y_baseline=240.3
-  { key: 'gioi_tinh_dd',   x: 381.1, y: 601.6, size: 12, maxW: 214 },
-  // After ":" x2=160.5, y_baseline=258.3 — "Ngày cấp:" at x=339.2 → ~172pt gap!
-  { key: 'so_gttt_dd',     x: 166.9, y: 583.6, size: 12, maxW: 172 },
-  // After "Ngày cấp:" x1=388.1 (search), placeholder at x=391.1, y_baseline=258.3
-  { key: 'ngay_cap_dd',    x: 393.1, y: 583.6, size: 11, maxW: 200 },
-  // After "Nơi cấp:" x1=108.4, y_baseline=276.2
-  { key: 'noi_cap_dd',     x: 113.4, y: 565.7, size: 12, maxW: 482 },
-  // After "4. Quan hệ..." x1=278.7, y_baseline=297.2
-  { key: 'quan_he',        x: 280.9, y: 544.7, size: 12, maxW: 314 },
+  // nguoi_dai_dien: x=111.05, y2=222.36 → pdf_y=619.5
+  { key: 'nguoi_dai_dien', x: 111.1, y: 619.5, size: 12, maxW: 482 },
+  // ngay_sinh_dd: x=173.30, y2=240.31 → pdf_y=601.6; before "Giới tính:" at x≈331.5
+  { key: 'ngay_sinh_dd',   x: 173.3, y: 601.6, size: 11, maxW: 156 },
+  // gioi_tinh_dd: x=381.20, y2=240.31 → pdf_y=601.6
+  { key: 'gioi_tinh_dd',   x: 381.2, y: 601.6, size: 12, maxW: 214 },
+  // so_gttt_dd: x=164.95, y2=258.26 → pdf_y=583.6; "Ngày cấp:" at x≈339.2 → ~172pt
+  { key: 'so_gttt_dd',     x: 165.0, y: 583.6, size: 12, maxW: 172 },
+  // ngay_cap_dd: x=391.15, y2=258.26 → pdf_y=583.6
+  { key: 'ngay_cap_dd',    x: 391.2, y: 583.6, size: 11, maxW: 200 },
+  // noi_cap_dd: x=111.40, y2=276.21 → pdf_y=565.7
+  { key: 'noi_cap_dd',     x: 111.4, y: 565.7, size: 12, maxW: 482 },
+  // quan_he: x=278.90, y2=297.16 → pdf_y=544.7
+  { key: 'quan_he',        x: 278.9, y: 544.7, size: 12, maxW: 314 },
 
   // ---- Section III: Exam content ----
-  // After "Mức khám:" x1=121.7, y_baseline=375.3
-  { key: 'muc_kham',       x: 126.7, y: 466.6, size: 12, maxW: 468 },
+  // muc_kham: x=124.70, y2=375.26 → pdf_y=466.6
+  { key: 'muc_kham',       x: 124.7, y: 466.6, size: 12, maxW: 468 },
 
-  // ---- Ghi chú — 2-line support ----
-  // "Nội dung cần kiểm tra bổ sung:" ends at x=185.3, y_baseline=679.3
-  // Line 1: next to label, limited width
-  { key: 'ghi_chu_l1',     x: 188.3, y: 162.6, size: 12, maxW: 380 },
-  // Line 2: under label, extends to right
-  { key: 'ghi_chu_l2',     x: 188.3, y: 144.6, size: 12, maxW: 400 },
+  // ---- Ghi chú — single line only ----
+  // "Nội dung cần kiểm tra bổ sung:" label ends at x≈188.3
+  // {ghi_chu} starts at x=191.32, y2=679.34 → pdf_y=162.6
+  // "An Giang, ngày …" at pdf_y≈146.8 — only ~16pt gap, no room for line 2
+  { key: 'ghi_chu',        x: 191.3, y: 162.6, size: 12, maxW: 378 },
 
-  // ---- Dotted lines for handwriting ----
-  { key: 'dots_bosung',    x: 188.3, y: 136.6, size: 12, maxW: 400 },
+  // ---- Exam X marks - Left column (centered in "Yêu cầu" at x≈290) ----
+  // Y from row text baselines: y2 values → pdf_y = PAGE_HEIGHT - y2
+  { key: 'kham_1',   x: 290, y: 419.0, size: 12, maxW: 20 },
+  { key: 'kham_2',   x: 290, y: 400.1, size: 12, maxW: 20 },
+  { key: 'kham_3',   x: 290, y: 381.2, size: 12, maxW: 20 },
+  { key: 'kham_4',   x: 290, y: 362.3, size: 12, maxW: 20 },
+  { key: 'kham_4_1', x: 290, y: 343.4, size: 12, maxW: 20 },
+  { key: 'kham_4_2', x: 290, y: 324.5, size: 12, maxW: 20 },
+  { key: 'kham_4_3', x: 290, y: 307.9, size: 12, maxW: 20 },
+  { key: 'kham_4_4', x: 290, y: 291.3, size: 12, maxW: 20 },
+  { key: 'kham_5',   x: 290, y: 274.7, size: 12, maxW: 20 },
+  { key: 'kham_6',   x: 290, y: 258.1, size: 12, maxW: 20 },
 
-  // ---- Exam X marks - Left column (centered at x≈288) ----
-  // y from placeholder y_base: kham_1=420.7, kham_2=439.6, etc.
-  { key: 'kham_1',   x: 288, y: 421.2, size: 12, maxW: 20 },
-  { key: 'kham_2',   x: 288, y: 402.3, size: 12, maxW: 20 },
-  { key: 'kham_3',   x: 288, y: 383.4, size: 12, maxW: 20 },
-  { key: 'kham_4',   x: 288, y: 364.5, size: 12, maxW: 20 },
-  { key: 'kham_4_1', x: 288, y: 345.6, size: 12, maxW: 20 },
-  { key: 'kham_4_2', x: 288, y: 326.7, size: 12, maxW: 20 },
-  { key: 'kham_4_3', x: 288, y: 310.1, size: 12, maxW: 20 },
-  { key: 'kham_4_4', x: 288, y: 293.5, size: 12, maxW: 20 },
-  { key: 'kham_5',   x: 288, y: 276.9, size: 12, maxW: 20 },
-  { key: 'kham_6',   x: 288, y: 260.3, size: 12, maxW: 20 },
-
-  // ---- Exam X marks - Right column (centered at x≈523) ----
-  // y matches left column rows: 7=1, 7.1=2, 7.2=3, 7.3=4, 7.4=4.1, 7.5=4.2,
-  // 8=4.3, 8.1=4.4, 8.2=5, 9=6
-  { key: 'kham_7',   x: 523, y: 421.2, size: 12, maxW: 20 },
-  { key: 'kham_7_1', x: 523, y: 402.3, size: 12, maxW: 20 },
-  { key: 'kham_7_2', x: 523, y: 383.4, size: 12, maxW: 20 },
-  { key: 'kham_7_3', x: 523, y: 364.5, size: 12, maxW: 20 },
-  { key: 'kham_7_4', x: 523, y: 345.6, size: 12, maxW: 20 },
-  { key: 'kham_7_5', x: 523, y: 326.7, size: 12, maxW: 20 },
-  { key: 'kham_8',   x: 523, y: 310.1, size: 12, maxW: 20 },
-  { key: 'kham_8_1', x: 523, y: 293.5, size: 12, maxW: 20 },
-  { key: 'kham_8_2', x: 523, y: 276.9, size: 12, maxW: 20 },
-  { key: 'kham_9',   x: 523, y: 260.3, size: 12, maxW: 20 },
+  // ---- Exam X marks - Right column (centered at x≈522) ----
+  { key: 'kham_7',   x: 522, y: 419.0, size: 12, maxW: 20 },
+  { key: 'kham_7_1', x: 522, y: 400.1, size: 12, maxW: 20 },
+  { key: 'kham_7_2', x: 522, y: 381.2, size: 12, maxW: 20 },
+  { key: 'kham_7_3', x: 522, y: 362.3, size: 12, maxW: 20 },
+  { key: 'kham_7_4', x: 522, y: 343.4, size: 12, maxW: 20 },
+  { key: 'kham_7_5', x: 522, y: 324.5, size: 12, maxW: 20 },
+  { key: 'kham_8',   x: 522, y: 307.9, size: 12, maxW: 20 },
+  { key: 'kham_8_1', x: 522, y: 291.3, size: 12, maxW: 20 },
+  { key: 'kham_8_2', x: 522, y: 274.7, size: 12, maxW: 20 },
+  { key: 'kham_9',   x: 522, y: 258.1, size: 12, maxW: 20 },
 ];
 
 export async function generatePDF(
@@ -164,26 +197,6 @@ export async function generatePDF(
 
   // Build exam data
   const { items: examItems, mucKham } = getExamData(selectedK, data.gioi_tinh, data.ngay_sinh);
-
-  // ---- Split ghi_chu into 2 lines ----
-  let ghiChuL1 = data.ghi_chu || '';
-  let ghiChuL2 = '';
-  if (ghiChuL1) {
-    const line1MaxW = 380;
-    const textWidth = font.widthOfTextAtSize(ghiChuL1, 12);
-    if (textWidth > line1MaxW) {
-      let splitIdx = ghiChuL1.length;
-      while (splitIdx > 0 && font.widthOfTextAtSize(ghiChuL1.substring(0, splitIdx), 12) > line1MaxW) {
-        splitIdx--;
-      }
-      const spaceIdx = ghiChuL1.lastIndexOf(' ', splitIdx);
-      if (spaceIdx > 0) {
-        splitIdx = spaceIdx + 1;
-      }
-      ghiChuL2 = ghiChuL1.substring(splitIdx).trim();
-      ghiChuL1 = ghiChuL1.substring(0, splitIdx).trimEnd();
-    }
-  }
 
   // Build values map for all field keys
   const values: Record<string, string> = {
@@ -215,12 +228,8 @@ export async function generatePDF(
     // Page 2 - Section III
     muc_kham: mucKham,
 
-    // Ghi chú — 2 lines
-    ghi_chu_l1: ghiChuL1,
-    ghi_chu_l2: ghiChuL2,
-
-    // Dotted lines (always visible)
-    dots_bosung:    '.'.repeat(130),
+    // Ghi chú — single line (no second line, no dots to avoid overlapping "An Giang")
+    ghi_chu: data.ghi_chu || '',
 
     // Exam X marks
     kham_1:   examItems.has('1')   ? 'X' : '',
