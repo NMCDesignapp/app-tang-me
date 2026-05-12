@@ -24,9 +24,9 @@ import { join } from 'path';
  *
  * Key layout constraints:
  *   Page 1: so_giay_yeu_cau inside "(Số GYCBH/HĐBH: ...)" — ~100pt before ")"
- *   Page 2: so_gttt has ~50pt before "Ngày cấp:" (tight — size 7 for max digits)
- *   Page 2: so_gttt_dd has ~172pt before "Ngày cấp:" (plenty of space)
- *   Page 2: ghi_chu supports 2 lines; "An Giang, ngày…" at pdf_y≈145.2 (~20pt gap)
+ *   Page 2: so_gttt has ~138pt before visible "Ngày cấp:" text (size 11 fits 12 digits)
+ *   Page 2: so_gttt_dd has ~184pt before "Ngày cấp:" (plenty of space)
+ *   Page 2: ghi_chu line 1 on same baseline as label, line 2 just above "An Giang"
  */
 
 const PAGE_HEIGHT = 841.89;
@@ -57,24 +57,20 @@ interface FieldDef {
 // Fill size chosen to match visual weight of labels (all labels are size 13)
 // =============================================================================
 const PAGE1_FIELDS: FieldDef[] = [
-  // so_giay_yeu_cau: after "(Số GYCBH/HĐBH:", before ")"
-  // Label baseline at pdf_y=562.4; fill at size 11
-  // x=295 (after "HĐBH: "), maxW = 401 - 295 = 106pt before ")"
-  { key: 'so_giay_yeu_cau', x: 295, y: 562.4, size: 11, maxW: 103 },
-  // ho_ten: after "Họ và tên:" label, same baseline as label
-  // Label baseline at pdf_y=499.4
+  // so_giay_yeu_cau: inside "(Số GYCBH/HĐBH: ...........)" on page 1
+  // Label "(Số GYCBH/HĐBH:" baseline = 562.4, same line, fill at size 11
+  // Dots area: x=302 to x=394, closing ")" at x≈398
+  // Fill starts at x=302 (where dots start), maxW = 394 - 302 = 92pt
+  { key: 'so_giay_yeu_cau', x: 302, y: 562.4, size: 11, maxW: 90 },
+  // ho_ten: after "Họ và tên:" label, same baseline
   { key: 'ho_ten',          x:  98.7, y: 499.4, size: 13, maxW: 460 },
   // ngay_sinh: after "Ngày/tháng/năm sinh:", before "Giới tính:"
-  // Label baseline at pdf_y=475.3
   { key: 'ngay_sinh',       x: 166.4, y: 475.3, size: 11, maxW: 131 },
   // gioi_tinh: after "Giới tính:" label
-  // Label baseline at pdf_y=475.3
   { key: 'gioi_tinh',       x: 354.2, y: 475.3, size: 13, maxW: 230 },
   // sdt: after "SĐT:", before "Địa chỉ:"
-  // Label baseline at pdf_y=450.8
   { key: 'sdt',             x:  72.7, y: 450.8, size: 13, maxW: 132 },
   // dia_chi: after "Địa chỉ:" label
-  // Label baseline at pdf_y=450.8
   { key: 'dia_chi',         x: 252.5, y: 450.8, size: 13, maxW: 340 },
 ];
 
@@ -105,9 +101,9 @@ const PAGE2_FIELDS: FieldDef[] = [
   { key: 'ho_ten_p2',      x: 123.1, y: 710.8, size: 12, maxW: 470 },
   { key: 'ngay_sinh_p2',   x: 182.4, y: 692.9, size: 11, maxW: 126 },
   { key: 'gioi_tinh_p2',   x: 363.0, y: 692.9, size: 12, maxW: 230 },
-  // so_gttt: CRITICAL — only ~48pt before "Ngày cấp:" at x≈226
-  // Use size 7 to fit 12 CCCD digits (12 × 4.2 ≈ 50pt, tight but fits)
-  { key: 'so_gttt',        x: 175.5, y: 674.9, size: 7,  maxW: 48 },
+  // so_gttt: "Ngày cấp:" visible text starts at x≈316 → ~138pt available
+  // Size 11 fits 12 CCCD digits (~79pt) comfortably
+  { key: 'so_gttt',        x: 175.5, y: 674.9, size: 11, maxW: 138 },
   // ngay_cap: after "Ngày cấp:" label
   { key: 'ngay_cap',       x: 371.3, y: 674.9, size: 11, maxW: 170 },
   // noi_cap: after "Nơi cấp:" label
@@ -126,12 +122,12 @@ const PAGE2_FIELDS: FieldDef[] = [
   { key: 'muc_kham',       x: 124.7, y: 469.3, size: 12, maxW: 468 },
 
   // ---- Ghi chú — 2-line support ----
-  // Line 1: on same baseline as "Nội dung cần kiểm tra bổ sung:" label (pdf_y=165.0)
-  // Move up 3pt as requested → pdf_y = 168.0
-  // Line 2: 16pt below line 1 → pdf_y = 152.0
-  // "An Giang, ngày…" at pdf_y≈145.2 — line 2 has ~7pt gap, acceptable
-  { key: 'ghi_chu_line1',  x: 191.3, y: 168.0, size: 11, maxW: 378 },
-  { key: 'ghi_chu_line2',  x:  34.1, y: 152.0, size: 11, maxW: 535 },
+  // Line 1: SAME baseline as "Nội dung cần kiểm tra bổ sung:" label (pdf_y=165.0)
+  // Label ends at x≈185.3, fill starts right after at x=188
+  // Line 2: just above "An Giang, ngày…" (y=149.0, 3.8pt above An Giang baseline)
+  // Line 2 starts at x=34.1 (below "Nội dung" label)
+  { key: 'ghi_chu_line1',  x: 188.0, y: 165.0, size: 11, maxW: 382 },
+  { key: 'ghi_chu_line2',  x:  34.1, y: 149.0, size: 11, maxW: 535 },
 
   // ---- Exam X marks - Left column (centered in "Yêu cầu" column) ----
   // Left Yêu cầu column: x from 265.8 to 318.2, center ≈ 292
@@ -197,7 +193,7 @@ export async function generatePDF(
   let ghiChuLine2 = '';
   if (ghiChuFull) {
     const ghiChuSize = 11;
-    const ghiChuMaxW1 = 378; // Line 1 max width (from label end to right margin)
+    const ghiChuMaxW1 = 382; // Line 1 max width (from label end to right margin)
     const fullWidth = font.widthOfTextAtSize(ghiChuFull, ghiChuSize);
     if (fullWidth <= ghiChuMaxW1) {
       // Fits on one line
